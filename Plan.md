@@ -7,7 +7,7 @@
 
 ### Lists to Create (in this order)
 1. **Sprint 1 · Foundation** — Week 1
-2. **Sprint 2 · Auth & Pantry** — Week 2
+2. **Sprint 2 · Auth & Ingredients** — Week 2
 3. **Sprint 3 · AI & Meal Plans** — Week 3
 4. **Sprint 4 · Cookbook & Features** — Week 4
 5. **Sprint 5 · Deploy & QA** — Week 5
@@ -38,7 +38,7 @@
 Agree on this folder structure before Sprint 1 starts. Simple, clean, follows .NET conventions:
 
 ```
-Smart Food Planner/
+SmartFoodPlanner/
 ├── Data/
 │   ├── AppDbContext.cs
 │   └── Migrations/
@@ -49,7 +49,7 @@ Smart Food Planner/
 │   ├── RecipeStep.cs
 │   └── Favorite.cs
 ├── Services/
-│   ├── IPantryService.cs + PantryService.cs
+│   ├── IIngredientService.cs + IngredientService.cs
 │   ├── IMealPlanService.cs + MealPlanService.cs
 │   ├── IAIService.cs + ClaudeAIService.cs
 │   └── IFavoriteService.cs + FavoriteService.cs
@@ -59,9 +59,8 @@ Smart Food Planner/
 │       └── NavMenu.razor
 └── Pages/
     ├── Auth/
-    │   ├── Register.razor
-    │   └── Login.razor
-    ├── Pantry.razor
+    │   └── Login.razor          ← OAuth entry point (no Register page needed)
+    ├── Ingredients.razor
     ├── MealPlan.razor
     ├── RecipeDetail.razor
     ├── Cookbook.razor
@@ -88,9 +87,9 @@ Smart Food Planner/
 - **Assigned to**: Alan + Adam
 - **Labels**: DevOps
 - **Description**:
-  Scaffold a new .NET 8 Blazor Server app called `Smart Food Planner`. Push to the group GitHub repo. Define the branch strategy: `main` is protected; each story gets its own feature branch (e.g., `feature/pantry-crud`). Add all 4 members as collaborators.
+  Scaffold a new .NET 8 Blazor Server app called `Smart Food Planner`. Push to the group GitHub repo. Define the branch strategy: `main` is protected; each story gets its own feature branch (e.g., `feature/ingredients-crud`). Add all 4 members as collaborators.
 - **Checklist**:
-  - [ ] `dotnet new blazorserver -n Smart Food Planner --auth Individual`
+  - [ ] `dotnet new blazorserver -n SmartFoodPlanner --auth Individual`
   - [ ] Push to GitHub repo `gazalem/semicolonsquad` (or new repo)
   - [ ] Add all team members as collaborators
   - [ ] Add `.gitignore` for .NET (Visual Studio template)
@@ -107,29 +106,57 @@ Smart Food Planner/
 - **Checklist**:
   - [ ] Install packages: `Microsoft.EntityFrameworkCore.Sqlite`, `Microsoft.EntityFrameworkCore.Tools`
   - [ ] Create `Data/AppDbContext.cs`
-  - [ ] Add connection string to `appsettings.json`: `"DefaultConnection": "Data Source=pantry.db"`
+  - [ ] Add connection string to `appsettings.json`: `"DefaultConnection": "Data Source=smartfoodplanner.db"`
   - [ ] Register in `Program.cs`: `builder.Services.AddDbContext<AppDbContext>(...)`
   - [ ] Run `dotnet ef migrations add InitialCreate && dotnet ef database update`
-  - [ ] Verify `pantry.db` file is created on app startup
+  - [ ] Verify `smartfoodplanner.db` file is created on app startup
 
 ---
 
-### Card 1.3 — Install & Configure ASP.NET Identity
+### Card 1.3 — Configure ASP.NET Identity + Google OAuth
 - **Assigned to**: Adam
 - **Labels**: Auth, Backend
 - **Description**:
-  Add ASP.NET Identity to the project. `AppDbContext` must inherit from `IdentityDbContext<IdentityUser>` so Identity tables are created in the same SQLite database. Configure Identity options in `Program.cs`. Run migration to create Identity tables.
+  Add ASP.NET Identity (manages the local user record in the DB) and wire it to Google OAuth (handles the actual login — no password stored). Users will click "Sign in with Google" and Identity creates their account automatically on first login.
+
+  **Before coding**: Adam must create a Google OAuth app in Google Cloud Console to get a `ClientId` and `ClientSecret`.
+- **One-time setup (Google Cloud Console)**:
+  1. Go to console.cloud.google.com → Create a new project
+  2. APIs & Services → Credentials → Create Credentials → OAuth 2.0 Client ID
+  3. Application type: **Web application**
+  4. Authorized redirect URI (dev): `https://localhost:{port}/signin-google`
+  5. Authorized redirect URI (prod): `https://{your-azure-url}/signin-google`
+  6. Copy the `Client ID` and `Client Secret`
 - **Checklist**:
-  - [ ] Install: `Microsoft.AspNetCore.Identity.EntityFrameworkCore`
+  - [ ] Install packages:
+    - `Microsoft.AspNetCore.Identity.EntityFrameworkCore`
+    - `Microsoft.AspNetCore.Authentication.Google`
   - [ ] Update `AppDbContext` to extend `IdentityDbContext<IdentityUser>`
   - [ ] Configure in `Program.cs`:
     ```csharp
     builder.Services.AddIdentity<IdentityUser, IdentityRole>()
         .AddEntityFrameworkStores<AppDbContext>()
         .AddDefaultTokenProviders();
+
+    builder.Services.AddAuthentication()
+        .AddGoogle(options => {
+            options.ClientId = builder.Configuration["Authentication:Google:ClientId"]!;
+            options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]!;
+        });
+    ```
+  - [ ] Add to `appsettings.Development.json` (this file is gitignored):
+    ```json
+    {
+      "Authentication": {
+        "Google": {
+          "ClientId": "YOUR_CLIENT_ID",
+          "ClientSecret": "YOUR_CLIENT_SECRET"
+        }
+      }
+    }
     ```
   - [ ] Run migration: `dotnet ef migrations add AddIdentity`
-  - [ ] Verify `AspNetUsers`, `AspNetRoles` tables exist in the DB
+  - [ ] Verify `AspNetUsers` table exists in the DB
 
 ---
 
@@ -179,38 +206,48 @@ Smart Food Planner/
 
 ---
 
-## SPRINT 2 — Authentication & Pantry CRUD
-**Week 2 | Goal: Users can register, log in, and manage pantry ingredients**
+## SPRINT 2 — Authentication & Ingredients CRUD
+**Week 2 | Goal: Users can register, log in, and manage ingredients**
 
 ---
 
-### Card 2.1 — Registration Page
+### Card 2.1 — OAuth Callback Handler & External Login Flow
 - **Assigned to**: Adam
-- **Labels**: Auth, Frontend
+- **Labels**: Auth, Backend
 - **Description**:
-  Build `Pages/Auth/Register.razor`. Form collects email, password, and confirm password. On submit, calls `UserManager<IdentityUser>.CreateAsync()`. Shows inline validation errors. Redirects to Login on success.
+  With Google OAuth there is no registration form — the first time a user signs in with their Google account, ASP.NET Identity automatically creates their local user record. This card wires up the callback that handles the OAuth response and creates (or finds) the Identity user.
+
+  Create a Razor Page (not a Blazor page) at `Areas/Identity/Pages/Account/ExternalLoginCallback.cshtml` — or use the built-in scaffolded version. The key logic: call `SignInManager.ExternalLoginSignInAsync()`, and if the user doesn't exist yet, call `UserManager.CreateAsync()` with the claims from the provider.
 - **Checklist**:
-  - [ ] Create `Pages/Auth/Register.razor` with route `@page "/register"`
-  - [ ] Form: Email, Password, Confirm Password fields
-  - [ ] Validate: email format, password match, password minimum length (8 chars)
-  - [ ] Call `UserManager.CreateAsync(user, password)` on valid submit
-  - [ ] Redirect to `/login` on success
-  - [ ] Show error message if email already registered
+  - [ ] Scaffold the Identity external login pages:
+    ```bash
+    dotnet aspnet-codegenerator identity -dc AppDbContext --files "Account.ExternalLogin"
+    ```
+  - [ ] In the callback, map the Google `email` claim to the new `IdentityUser`
+  - [ ] On first login: create the user + add external login record (`UserManager.AddLoginAsync`)
+  - [ ] On subsequent logins: find existing user by external login and sign in
+  - [ ] Redirect to `/ingredients` after successful login
+  - [ ] Redirect to `/login` with error message if Google login is denied or fails
 
 ---
 
-### Card 2.2 — Login & Logout
+### Card 2.2 — Login Page & Logout
 - **Assigned to**: Adam
 - **Labels**: Auth, Frontend
 - **Description**:
-  Build `Pages/Auth/Login.razor`. On submit, call `SignInManager.PasswordSignInAsync()`. Redirect to `/pantry` on success. Add a Logout button in `NavMenu.razor` that calls `SignInManager.SignOutAsync()` and redirects to home.
+  Build `Pages/Auth/Login.razor`. There is no email/password form — the page shows a single "Sign in with Google" button. Clicking it initiates the OAuth redirect via `SignInManager.GetExternalAuthenticationSchemesAsync()`. Add a Logout button to `NavMenu.razor`.
 - **Checklist**:
   - [ ] Create `Pages/Auth/Login.razor` with route `@page "/login"`
-  - [ ] Form: Email and Password fields
-  - [ ] Call `SignInManager.PasswordSignInAsync()` on submit
-  - [ ] Redirect to `/pantry` on success
-  - [ ] Show "Invalid email or password" error on failure
-  - [ ] Add "Logout" link in `NavMenu.razor` for logged-in users
+  - [ ] Page shows the app logo, a tagline, and a "Sign in with Google" button
+  - [ ] Button triggers OAuth redirect:
+    ```csharp
+    var redirectUrl = NavigationManager.BaseUri + "signin-google";
+    var properties = SignInManager.ConfigureExternalAuthenticationProperties("Google", redirectUrl);
+    // Use NavigationManager.NavigateTo with the challenge URL
+    ```
+  - [ ] No email/password fields anywhere
+  - [ ] Add "Sign out" link in `NavMenu.razor` that calls `SignInManager.SignOutAsync()` then redirects to `/`
+  - [ ] Test: clicking "Sign in with Google" opens Google's login screen
 
 ---
 
@@ -218,13 +255,14 @@ Smart Food Planner/
 - **Assigned to**: Adam
 - **Labels**: Auth
 - **Description**:
-  All pages except Login, Register, and SharedRecipe require authentication. Add `[Authorize]` attribute to Pantry, MealPlan, Cookbook, Favorites, and PastPlans pages. Configure `Routes.razor` to redirect unauthenticated users to `/login`.
+  All pages except Login and SharedRecipe require authentication. Add `[Authorize]` to protected pages. Configure `Routes.razor` to redirect unauthenticated users to `/login`. There is no separate Register page — the Login page is the only entry point.
 - **Checklist**:
-  - [ ] Add `@attribute [Authorize]` to: Pantry, MealPlan, Cookbook, Favorites, PastPlans
+  - [ ] Add `@attribute [Authorize]` to: Ingredients, MealPlan, Cookbook, Favorites, PastPlans
   - [ ] In `Routes.razor`, set `NotAuthorized` to redirect to `/login`
-  - [ ] NavMenu shows "Login / Register" links when logged out
-  - [ ] NavMenu shows "Logout" and user's email when logged in
-  - [ ] Test: navigate to `/pantry` while logged out → redirected to `/login`
+  - [ ] NavMenu shows "Sign in with Google" link when logged out
+  - [ ] NavMenu shows user's Google profile name/email and "Sign out" when logged in
+  - [ ] Test: navigate to `/ingredients` while logged out → redirected to `/login`
+  - [ ] Test: complete Google OAuth → land on `/ingredients`
 
 ---
 
@@ -241,11 +279,11 @@ Smart Food Planner/
 
 ---
 
-### Card 2.5 — PantryService (Backend)
+### Card 2.5 — IngredientService (Backend)
 - **Assigned to**: Ernesto
 - **Labels**: Backend
 - **Description**:
-  Create `Services/IPantryService.cs` interface and `Services/PantryService.cs` implementation. Always filter by `userId` so users can only see their own data. Register in `Program.cs`.
+  Create `Services/IIngredientService.cs` interface and `Services/IngredientService.cs` implementation. Always filter by `userId` so users can only see their own data. Register in `Program.cs`.
 - **Methods to implement**:
   ```csharp
   Task<List<Ingredient>> GetIngredientsAsync(string userId);
@@ -254,24 +292,24 @@ Smart Food Planner/
   Task DeleteIngredientAsync(int id, string userId);
   ```
 - **Checklist**:
-  - [ ] Create `IPantryService` interface
-  - [ ] Implement all 4 methods in `PantryService`
+  - [ ] Create `IIngredientService` interface
+  - [ ] Implement all 4 methods in `IngredientService`
   - [ ] `DeleteIngredientAsync` verifies the ingredient belongs to `userId` before deleting
-  - [ ] Register: `builder.Services.AddScoped<IPantryService, PantryService>()`
+  - [ ] Register: `builder.Services.AddScoped<IIngredientService, IngredientService>()`
 
 ---
 
-### Card 2.6 — Pantry Page UI
+### Card 2.6 — Ingredients Page UI
 - **Assigned to**: Abraham
 - **Labels**: Frontend
 - **Description**:
-  Build `Pages/Pantry.razor`. Inject `IPantryService`. On load, fetch and display the current user's ingredients in a clean card or list layout. Include Add, Edit, and Delete actions. Use inline editing or a simple modal for Add/Edit.
+  Build `Pages/Ingredients.razor`. Inject `IIngredientService`. On load, fetch and display the current user's ingredients in a clean card or list layout. Include Add, Edit, and Delete actions. Use inline editing or a simple modal for Add/Edit.
 - **Checklist**:
   - [ ] List all ingredients with Name, Quantity, Unit displayed
   - [ ] "Add Ingredient" button opens a form (modal or inline section at top)
   - [ ] Edit: click a pencil icon to make fields editable inline → Save button
   - [ ] Delete: click trash icon → confirmation dialog ("Delete this ingredient?")
-  - [ ] Empty state: "Your pantry is empty — add your first ingredient!"
+  - [ ] Empty state: "No ingredients yet — add your first one!"
   - [ ] Page shows user's name or a "Welcome back!" greeting
 
 ---
@@ -306,7 +344,7 @@ Smart Food Planner/
 - **Assigned to**: Alan
 - **Labels**: AI/API
 - **Description**:
-  Replace the stub `ClaudeAIService` with a real implementation. Design a prompt that sends the user's pantry ingredients and requests a structured JSON response with 7 meals. Parse the JSON into typed C# objects.
+  Replace the stub `ClaudeAIService` with a real implementation. Design a prompt that sends the user's ingredients and requests a structured JSON response with 7 meals. Parse the JSON into typed C# objects.
 - **Prompt structure**:
   ```
   System: "You are a helpful meal planning assistant. Always respond with valid JSON only."
@@ -318,7 +356,7 @@ Smart Food Planner/
 - **Checklist**:
   - [ ] Replace stub implementation with real API call
   - [ ] System prompt sets JSON-only response mode
-  - [ ] User prompt passes pantry ingredients as a comma-separated list
+  - [ ] User prompt passes ingredients as a comma-separated list
   - [ ] Deserialize JSON response into `MealPlanResponse` DTO
   - [ ] Test with a real API call in debug mode — verify 7 meals are returned
   - [ ] Log request and response for debugging (no API key in logs)
@@ -505,13 +543,13 @@ Smart Food Planner/
 - **Description**:
   Update `NavMenu.razor` to include all app pages. Show nav links only for authenticated users (except Login/Register). Highlight the currently active page.
 - **Nav links (authenticated)**:
-  - Pantry → `/pantry`
+  - Ingredients → `/ingredients`
   - Generate Plan → `/mealplan`
   - Cookbook → `/cookbook`
   - Favorites → `/favorites`
   - Past Plans → `/pastplans`
   - Logout
-- **Nav links (unauthenticated)**: Login, Register
+- **Nav links (unauthenticated)**: "Sign in with Google" → `/login`
 - **Checklist**:
   - [ ] All links present and correct in NavMenu
   - [ ] Active page link has a distinct style (bold or color change)
@@ -526,7 +564,7 @@ Smart Food Planner/
 - **Description**:
   Test every page at three breakpoints using browser DevTools: 375px (iPhone SE), 768px (iPad), 1280px (desktop). Fix layout issues — overflowing text, broken buttons, squished forms, or unreadable cards.
 - **Checklist**:
-  - [ ] Pantry page: form and list stack cleanly on mobile
+  - [ ] Ingredients page: form and list stack cleanly on mobile
   - [ ] Meal plan grid: 1 column on mobile, 2 on tablet, 3-4 on desktop
   - [ ] Recipe detail: ingredients and steps are readable on 375px
   - [ ] Cookbook/Favorites: grid adjusts column count
@@ -546,14 +584,14 @@ Smart Food Planner/
 - **Description**:
   Create an Azure App Service (Free or Student tier). Create a `cd.yml` GitHub Actions workflow that publishes and deploys the app to Azure on every push to `main`.
 - **Checklist**:
-  - [ ] Create Azure App Service in Azure Portal (name: `Smart Food Planner` or similar)
+  - [ ] Create Azure App Service in Azure Portal (name: `smartfoodplanner` — no spaces, all lowercase)
   - [ ] Download the Publish Profile from Azure
   - [ ] Add Publish Profile to GitHub Secrets: `AZURE_WEBAPP_PUBLISH_PROFILE`
   - [ ] Create `.github/workflows/cd.yml`:
     - `dotnet publish -c Release`
     - Deploy to Azure using `azure/webapps-deploy` action
   - [ ] Trigger on push to `main`
-  - [ ] Verify app loads at `https://Smart Food Planner.azurewebsites.net` (or your URL)
+  - [ ] Verify app loads at `https://smartfoodplanner.azurewebsites.net` (or your chosen URL)
 
 ---
 
@@ -566,12 +604,15 @@ Smart Food Planner/
   - [ ] Add to Azure App Service → Configuration → Application Settings:
     - `ConnectionStrings__DefaultConnection` (SQLite path or Azure SQL string)
     - `AIService__ApiKey` (AI API key — never in code)
+    - `Authentication__Google__ClientId` (from Google Cloud Console)
+    - `Authentication__Google__ClientSecret` (from Google Cloud Console)
+  - [ ] In Google Cloud Console, add the Azure URL to the OAuth app's authorized redirect URIs: `https://{your-azure-url}/signin-google`
   - [ ] In `Program.cs`, run migrations on startup:
     ```csharp
     using var scope = app.Services.CreateScope();
     scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.Migrate();
     ```
-  - [ ] Test in production: register → login → add ingredient → generate plan
+  - [ ] Test in production: click "Sign in with Google" → OAuth flow completes → land on `/ingredients`
 
 ---
 
@@ -581,7 +622,7 @@ Smart Food Planner/
 - **Description**:
   Run Lighthouse on all 5 main pages in the deployed app. Fix any accessibility issues to reach a score ≥ 90. Common fixes: missing `alt`, icon-only buttons without labels, low color contrast, form inputs without `<label>`.
 - **Checklist**:
-  - [ ] Run Lighthouse on: Home, Pantry, MealPlan, RecipeDetail, Cookbook
+  - [ ] Run Lighthouse on: Home, Ingredients, MealPlan, RecipeDetail, Cookbook
   - [ ] Target: Accessibility score ≥ 90 on all pages
   - [ ] Fix: add `alt=""` or `aria-label` to all images and icon buttons
   - [ ] Fix: verify color contrast ratio ≥ 4.5:1 for all body text
@@ -608,7 +649,7 @@ Smart Food Planner/
 - **Description**:
   Ensure every page that can show zero data has a helpful empty state message. Confirm all async operations show a loading spinner. Do a final visual pass for consistent spacing, typography, and button styles.
 - **Checklist**:
-  - [ ] Empty states on: Pantry, Cookbook, Favorites, Past Plans, MealPlan (no plan generated yet)
+  - [ ] Empty states on: Ingredients, Cookbook, Favorites, Past Plans, MealPlan (no plan generated yet)
   - [ ] Loading spinners on: Generate Plan button, all initial page loads
   - [ ] Consistent button styles: primary (filled, brand color), secondary (outlined)
   - [ ] Consistent page header: every page has a `<h1>` and optional subtitle
@@ -622,8 +663,8 @@ Smart Food Planner/
 - **Description**:
   Test every functional requirement in the live Azure production environment. Each developer tests features built by their teammates, not their own. Any bug found gets a Trello card immediately and fixed before the demo.
 - **Checklist (test in production)**:
-  - [ ] FR-01: Register a brand-new account with a unique email ✓
-  - [ ] FR-02: Log in with that account; log out; log back in ✓
+  - [ ] FR-01: Sign in with Google for the first time → account auto-created, lands on `/ingredients` ✓
+  - [ ] FR-02: Sign out; click "Sign in with Google" again → returns to `/ingredients` ✓
   - [ ] FR-03: Add 5 ingredients; edit one; delete one ✓
   - [ ] FR-04: Click "Generate Plan" — see 7-day plan appear ✓
   - [ ] FR-05: Click any day card — see full recipe with steps ✓
@@ -641,8 +682,8 @@ Smart Food Planner/
 - **Description**:
   Write a short "Getting Started" section in the GitHub repo README. Cover the 4 main user flows. Max 1 page — clear and simple. This satisfies the course's user documentation requirement.
 - **Guide must cover**:
-  1. How to create an account
-  2. How to add ingredients to your pantry
+  1. How to sign in with Google (account is created automatically on first login)
+  2. How to add your ingredients
   3. How to generate a meal plan
   4. How to favorite and share a recipe
 - **Checklist**:
@@ -658,8 +699,8 @@ Smart Food Planner/
 - **Description**:
   Each member records their segment using their own camera and presents the features they built. Edit into a single ~5-7 minute video. Upload to YouTube (unlisted or public). Paste link into Canvas submission.
 - **Segments**:
-  - **Adam** (~1.5 min): Register, Login, show auth guards, Logout
-  - **Ernesto** (~1.5 min): Add ingredients to pantry, edit, delete
+  - **Adam** (~1.5 min): Sign in with Google, show that protected pages redirect when logged out, Sign out
+  - **Ernesto** (~1.5 min): Add ingredients, edit, delete
   - **Alan** (~1.5 min): Generate meal plan, explain AI integration
   - **Abraham** (~1.5 min): Recipe detail, Favorites, Cookbook, share link
 - **Checklist**:
@@ -692,7 +733,7 @@ Smart Food Planner/
 | Project scaffold & GitHub setup | Alan | Adam |
 | Database models & migrations | Ernesto | Alan |
 | Backend service layer (CRUD) | Ernesto | Alan |
-| Authentication (register/login/logout) | Adam | Alan |
+| Authentication (Google OAuth + Identity) | Adam | Alan |
 | Auth guards & protected routes | Adam | — |
 | AI service & prompt engineering | Alan | — |
 | AI error handling | Alan | — |
