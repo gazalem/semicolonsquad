@@ -90,7 +90,7 @@ SmartFoodPlanner/
 - **Description**:
   Scaffold a new .NET 8 Blazor Server app called `Smart Food Planner`. Push to the group GitHub repo. Define the branch strategy: `main` is protected; each story gets its own feature branch (e.g., `feature/ingredients-crud`). Add all 5 members as collaborators.
 - **Checklist**:
-  - [ ] `dotnet new blazorserver -n SmartFoodPlanner --auth Individual`
+  - [ ] `dotnet new blazor -n SmartFoodPlanner --interactivity Server --auth Individual`
   - [ ] Push to GitHub repo `gazalem/semicolonsquad` (or new repo)
   - [ ] Add all team members as collaborators (Ernesto, Abraham, Adam, Alan, Daniel)
   - [ ] Add `.gitignore` for .NET (Visual Studio template)
