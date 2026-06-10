@@ -465,3 +465,6 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+# Protecting API Keys for development
+appsettings.Development.json
