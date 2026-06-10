@@ -1,5 +1,5 @@
 # Smart Food Planner — Trello Sprint Plan
-**CSE 325 | 5 Weeks | Team: Ernesto (Backend), Abraham (Frontend), Adam (Auth/Frontend), Alan (AI/Backend)**
+**CSE 325 | 5 Weeks | Team: Ernesto (Backend), Abraham (Frontend), Adam (Auth/Frontend), Alan (AI/Backend), Daniel (Frontend/Databases)**
 
 ---
 
@@ -30,6 +30,7 @@
 - **Abraham** — Frontend
 - **Adam** — Auth / Frontend
 - **Alan** — AI / APIs / Backend
+- **Daniel** — Frontend / Databases
 
 ---
 
@@ -87,11 +88,11 @@ SmartFoodPlanner/
 - **Assigned to**: Alan + Adam
 - **Labels**: DevOps
 - **Description**:
-  Scaffold a new .NET 8 Blazor Server app called `Smart Food Planner`. Push to the group GitHub repo. Define the branch strategy: `main` is protected; each story gets its own feature branch (e.g., `feature/ingredients-crud`). Add all 4 members as collaborators.
+  Scaffold a new .NET 8 Blazor Server app called `Smart Food Planner`. Push to the group GitHub repo. Define the branch strategy: `main` is protected; each story gets its own feature branch (e.g., `feature/ingredients-crud`). Add all 5 members as collaborators.
 - **Checklist**:
   - [ ] `dotnet new blazorserver -n SmartFoodPlanner --auth Individual`
   - [ ] Push to GitHub repo `gazalem/semicolonsquad` (or new repo)
-  - [ ] Add all team members as collaborators
+  - [ ] Add all team members as collaborators (Ernesto, Abraham, Adam, Alan, Daniel)
   - [ ] Add `.gitignore` for .NET (Visual Studio template)
   - [ ] Add `appsettings.Development.json` to `.gitignore` (for API keys later)
   - [ ] Document branch naming in README: `feature/card-name`
@@ -99,10 +100,10 @@ SmartFoodPlanner/
 ---
 
 ### Card 1.2 — Configure EF Core + SQLite Database
-- **Assigned to**: Ernesto
+- **Assigned to**: Ernesto + Daniel
 - **Labels**: Backend
 - **Description**:
-  Install EF Core with SQLite for local development. Create `AppDbContext.cs`. Add connection string to `appsettings.json`. Run the first migration (empty schema) to verify everything is wired correctly.
+  Install EF Core with SQLite for local development. Create `AppDbContext.cs`. Add connection string to `appsettings.json`. Run the first migration (empty schema) to verify everything is wired correctly. Ernesto leads the setup; Daniel verifies the DB configuration and assists with the migration.
 - **Checklist**:
   - [ ] Install packages: `Microsoft.EntityFrameworkCore.Sqlite`, `Microsoft.EntityFrameworkCore.Tools`
   - [ ] Create `Data/AppDbContext.cs`
@@ -161,10 +162,10 @@ SmartFoodPlanner/
 ---
 
 ### Card 1.4 — Base Layout & Smart Food Planner Branding
-- **Assigned to**: Abraham
+- **Assigned to**: Abraham + Daniel
 - **Labels**: Frontend
 - **Description**:
-  Set the visual identity for Smart Food Planner. Define CSS variables for the color palette (food-themed: greens and warm tones), font family, and spacing. Update `MainLayout.razor` and `NavMenu.razor` with the brand. The app should look intentional from day one.
+  Set the visual identity for Smart Food Planner. Define CSS variables for the color palette (food-themed: greens and warm tones), font family, and spacing. Update `MainLayout.razor` and `NavMenu.razor` with the brand. Abraham leads the CSS and layout; Daniel assists with the component structure and responsive scaffolding. The app should look intentional from day one.
 - **Suggested palette**:
   - Primary: `#2D6A4F` (forest green)
   - Accent: `#F4A261` (warm orange)
@@ -192,14 +193,14 @@ SmartFoodPlanner/
 ---
 
 ### Card 1.6 — Set Up Trello Board & Import All Cards
-- **Assigned to**: Alan (all members participate)
+- **Assigned to**: Alan + Daniel (all members participate)
 - **Labels**: DevOps
 - **Description**:
-  Create the Trello board "Smart Food Planner — CSE 325". Create all sprint lists, add all members, define labels, and import every card from this plan. Paste the Trello link into `projectProposal_en.md`.
+  Create the Trello board "Smart Food Planner — CSE 325". Create all sprint lists, add all members, define labels, and import every card from this plan. Paste the Trello link into `projectProposal_en.md`. Alan leads the board creation; Daniel imports and organizes the sprint cards.
 - **Checklist**:
   - [ ] Create Trello board and set to "Team Visible"
   - [ ] Create all 8 lists (5 sprints + In Progress + In Review + Done)
-  - [ ] Add Ernesto, Abraham, Adam, Alan as members
+  - [ ] Add Ernesto, Abraham, Adam, Alan, Daniel as members
   - [ ] Create all labels (Backend, Frontend, Auth, AI/API, DevOps, QA)
   - [ ] Add all cards from this plan to their respective sprint lists
   - [ ] Paste board URL into `projectProposal_en.md` → Project Links section
@@ -267,10 +268,10 @@ SmartFoodPlanner/
 ---
 
 ### Card 2.4 — Ingredient Model & Migration
-- **Assigned to**: Ernesto
+- **Assigned to**: Ernesto + Daniel
 - **Labels**: Backend
 - **Description**:
-  Create `Models/Ingredient.cs`. Fields: Id (int), UserId (string, FK to IdentityUser), Name (string, required), Quantity (decimal, nullable), Unit (string, nullable, e.g. "cups"), CreatedAt (DateTime). Add `DbSet<Ingredient>` to `AppDbContext`. Run migration.
+  Create `Models/Ingredient.cs`. Fields: Id (int), UserId (string, FK to IdentityUser), Name (string, required), Quantity (decimal, nullable), Unit (string, nullable, e.g. "cups"), CreatedAt (DateTime). Add `DbSet<Ingredient>` to `AppDbContext`. Ernesto defines the model; Daniel runs the migration and validates the schema.
 - **Checklist**:
   - [ ] Create `Models/Ingredient.cs` with all fields
   - [ ] Add `DbSet<Ingredient> Ingredients` to `AppDbContext`
@@ -280,10 +281,10 @@ SmartFoodPlanner/
 ---
 
 ### Card 2.5 — IngredientService (Backend)
-- **Assigned to**: Ernesto
+- **Assigned to**: Ernesto + Daniel
 - **Labels**: Backend
 - **Description**:
-  Create `Services/IIngredientService.cs` interface and `Services/IngredientService.cs` implementation. Always filter by `userId` so users can only see their own data. Register in `Program.cs`.
+  Create `Services/IIngredientService.cs` interface and `Services/IngredientService.cs` implementation. Always filter by `userId` so users can only see their own data. Ernesto writes the service; Daniel reviews the query logic and assists with registration in `Program.cs`.
 - **Methods to implement**:
   ```csharp
   Task<List<Ingredient>> GetIngredientsAsync(string userId);
@@ -300,10 +301,10 @@ SmartFoodPlanner/
 ---
 
 ### Card 2.6 — Ingredients Page UI
-- **Assigned to**: Abraham
+- **Assigned to**: Abraham (primary) + Daniel (support)
 - **Labels**: Frontend
 - **Description**:
-  Build `Pages/Ingredients.razor`. Inject `IIngredientService`. On load, fetch and display the current user's ingredients in a clean card or list layout. Include Add, Edit, and Delete actions. Use inline editing or a simple modal for Add/Edit.
+  Build `Pages/Ingredients.razor`. Inject `IIngredientService`. On load, fetch and display the current user's ingredients in a clean card or list layout. Include Add, Edit, and Delete actions. Abraham leads the component and interaction design; Daniel assists with the form and layout markup.
 - **Checklist**:
   - [ ] List all ingredients with Name, Quantity, Unit displayed
   - [ ] "Add Ingredient" button opens a form (modal or inline section at top)
@@ -331,7 +332,7 @@ SmartFoodPlanner/
   - [ ] Create `MealPlanResponse` DTO (record or class) with 7 `RecipeDto` items
   - [ ] Create stub `ClaudeAIService` that returns hardcoded dummy data
   - [ ] Register: `builder.Services.AddScoped<IAIService, ClaudeAIService>()`
-  - [ ] Share `MealPlanResponse` and `RecipeDto` classes with Ernesto (he'll need them for models)
+  - [ ] Share `MealPlanResponse` and `RecipeDto` classes with Ernesto and Daniel (they'll need them for models)
 
 ---
 
@@ -364,10 +365,10 @@ SmartFoodPlanner/
 ---
 
 ### Card 3.2 — MealPlan & Recipe Database Models
-- **Assigned to**: Ernesto
+- **Assigned to**: Ernesto + Daniel
 - **Labels**: Backend
 - **Description**:
-  Create the data models to persist AI-generated meal plans. Coordinate with Alan on the DTO structure before writing models to ensure they align.
+  Create the data models to persist AI-generated meal plans. Coordinate with Alan on the DTO structure before writing models to ensure they align. Ernesto defines the EF relationships; Daniel creates the model files and runs the migration.
 - **Models**:
   - `MealPlan`: Id, UserId, GeneratedAt, List\<Recipe\>
   - `Recipe`: Id, MealPlanId, DayNumber, Name, EstimatedMinutes, ShareToken (GUID string), List\<RecipeStep\>
@@ -382,10 +383,10 @@ SmartFoodPlanner/
 ---
 
 ### Card 3.3 — MealPlanService (Backend)
-- **Assigned to**: Ernesto
+- **Assigned to**: Ernesto (primary) + Daniel (support)
 - **Labels**: Backend
 - **Description**:
-  Create `Services/IMealPlanService.cs` and `MealPlanService.cs`. The save method maps Alan's DTO objects into EF entities. Queries always scope to `userId`.
+  Create `Services/IMealPlanService.cs` and `MealPlanService.cs`. The save method maps Alan's DTO objects into EF entities. Queries always scope to `userId`. Ernesto writes the service methods; Daniel assists with the DTO-to-entity mapping logic and validates queries against the schema.
 - **Methods**:
   ```csharp
   Task<MealPlan> SaveMealPlanAsync(string userId, MealPlanResponse dto);
@@ -403,10 +404,10 @@ SmartFoodPlanner/
 ---
 
 ### Card 3.4 — Generate Meal Plan Page
-- **Assigned to**: Abraham
+- **Assigned to**: Abraham (primary) + Daniel (support)
 - **Labels**: Frontend
 - **Description**:
-  Build `Pages/MealPlan.razor`. The page has a "Generate This Week's Plan" button. While generating, show a loading spinner and disable the button. Once done, display 7 day cards in a grid (Mon–Sun), each showing the meal name and estimated time.
+  Build `Pages/MealPlan.razor`. The page has a "Generate This Week's Plan" button. While generating, show a loading spinner and disable the button. Once done, display 7 day cards in a grid (Mon–Sun), each showing the meal name and estimated time. Abraham leads the component; Daniel assists with the grid layout and card markup.
 - **Checklist**:
   - [ ] "Generate" button: calls `IAIService.GenerateMealPlanAsync()` then saves via `IMealPlanService`
   - [ ] Loading state: spinner + "Cooking up your plan..." message + button disabled
@@ -418,10 +419,10 @@ SmartFoodPlanner/
 ---
 
 ### Card 3.5 — Recipe Detail Page
-- **Assigned to**: Abraham
+- **Assigned to**: Abraham (primary) + Daniel (support)
 - **Labels**: Frontend
 - **Description**:
-  Build `Pages/RecipeDetail.razor`. Takes `RecipeId` as a route parameter. Fetches the recipe and displays: name, estimated time, ingredient list (bulleted), and numbered step-by-step instructions. Include a Favorite button (wired in Sprint 4) and a Share button (wired in Sprint 4).
+  Build `Pages/RecipeDetail.razor`. Takes `RecipeId` as a route parameter. Fetches the recipe and displays: name, estimated time, ingredient list (bulleted), and numbered step-by-step instructions. Abraham leads the layout; Daniel wires the data-fetching logic and assists with the Favorite/Share placeholder buttons.
 - **Checklist**:
   - [ ] Route: `@page "/recipe/{RecipeId:int}"`
   - [ ] Fetch recipe via `IMealPlanService.GetRecipeByIdAsync(RecipeId)`
@@ -433,10 +434,10 @@ SmartFoodPlanner/
 ---
 
 ### Card 3.6 — Past Meal Plans Page
-- **Assigned to**: Ernesto
+- **Assigned to**: Daniel
 - **Labels**: Backend, Frontend
 - **Description**:
-  Build `Pages/PastPlans.razor`. Lists all meal plans the user has previously generated, sorted newest first. Each entry shows the generation date and links to that week's meal plan view.
+  Build `Pages/PastPlans.razor`. Lists all meal plans the user has previously generated, sorted newest first. Each entry shows the generation date and links to that week's meal plan view. Daniel owns this card end-to-end — it draws on both his database querying skills (via `IMealPlanService`) and his frontend skills for the list UI.
 - **Checklist**:
   - [ ] Fetch all meal plans via `IMealPlanService.GetMealPlansAsync(userId)`
   - [ ] Display: date generated, number of recipes (always 7)
@@ -465,10 +466,10 @@ SmartFoodPlanner/
 ---
 
 ### Card 4.1 — Favorite Model & FavoriteService
-- **Assigned to**: Ernesto
+- **Assigned to**: Ernesto + Daniel
 - **Labels**: Backend
 - **Description**:
-  Create `Models/Favorite.cs` (Id, UserId, RecipeId, CreatedAt). Run migration. Create `IFavoriteService` and `FavoriteService` with toggle, check, and list methods.
+  Create `Models/Favorite.cs` (Id, UserId, RecipeId, CreatedAt). Run migration. Create `IFavoriteService` and `FavoriteService` with toggle, check, and list methods. Ernesto writes the service logic; Daniel creates the model, runs the migration, and validates the unique index.
 - **Methods**:
   ```csharp
   Task ToggleFavoriteAsync(string userId, int recipeId);
@@ -497,10 +498,10 @@ SmartFoodPlanner/
 ---
 
 ### Card 4.3 — Favorites Page
-- **Assigned to**: Abraham
+- **Assigned to**: Daniel
 - **Labels**: Frontend
 - **Description**:
-  Build `Pages/Favorites.razor`. Displays all recipes the user has starred, as cards in a grid. Each card shows the recipe name, estimated time, and a "View Recipe" link.
+  Build `Pages/Favorites.razor`. Displays all recipes the user has starred, as cards in a grid. Each card shows the recipe name, estimated time, and a "View Recipe" link. Daniel owns this page end-to-end — it combines a straightforward DB query (via `IFavoriteService`) with a responsive frontend grid.
 - **Checklist**:
   - [ ] Fetch favorites via `IFavoriteService.GetFavoriteRecipesAsync(userId)`
   - [ ] Display as a responsive grid of recipe cards
@@ -510,10 +511,10 @@ SmartFoodPlanner/
 ---
 
 ### Card 4.4 — Cookbook Page
-- **Assigned to**: Abraham
+- **Assigned to**: Abraham (primary) + Daniel (support)
 - **Labels**: Frontend
 - **Description**:
-  Build `Pages/Cookbook.razor`. Shows every recipe ever generated by the user across all meal plans. Include a live search bar that filters recipes by name as the user types.
+  Build `Pages/Cookbook.razor`. Shows every recipe ever generated by the user across all meal plans. Include a live search bar that filters recipes by name as the user types. Abraham leads the search logic and overall layout; Daniel assists with the recipe card component (reusing work from the Favorites page).
 - **Checklist**:
   - [ ] Fetch all recipes from all of the user's meal plans
   - [ ] Search bar: bind to a string variable, filter the displayed list in real time
@@ -538,10 +539,10 @@ SmartFoodPlanner/
 ---
 
 ### Card 4.6 — Navigation Updates
-- **Assigned to**: Adam
+- **Assigned to**: Adam + Daniel
 - **Labels**: Frontend
 - **Description**:
-  Update `NavMenu.razor` to include all app pages. Show nav links only for authenticated users (except Login/Register). Highlight the currently active page.
+  Update `NavMenu.razor` to include all app pages. Show nav links only for authenticated users (except Login). Highlight the currently active page. Adam leads the auth-conditional logic; Daniel assists with the styling and active-link highlighting.
 - **Nav links (authenticated)**:
   - Ingredients → `/ingredients`
   - Generate Plan → `/mealplan`
@@ -559,15 +560,15 @@ SmartFoodPlanner/
 ---
 
 ### Card 4.7 — Responsive Design Audit
-- **Assigned to**: Adam
+- **Assigned to**: Adam + Daniel
 - **Labels**: Frontend, QA
 - **Description**:
-  Test every page at three breakpoints using browser DevTools: 375px (iPhone SE), 768px (iPad), 1280px (desktop). Fix layout issues — overflowing text, broken buttons, squished forms, or unreadable cards.
+  Test every page at three breakpoints using browser DevTools: 375px (iPhone SE), 768px (iPad), 1280px (desktop). Fix layout issues — overflowing text, broken buttons, squished forms, or unreadable cards. Adam covers auth-related pages; Daniel covers Favorites, Past Plans, and Cookbook pages.
 - **Checklist**:
   - [ ] Ingredients page: form and list stack cleanly on mobile
   - [ ] Meal plan grid: 1 column on mobile, 2 on tablet, 3-4 on desktop
   - [ ] Recipe detail: ingredients and steps are readable on 375px
-  - [ ] Cookbook/Favorites: grid adjusts column count
+  - [ ] Cookbook/Favorites/Past Plans: grid adjusts column count
   - [ ] NavMenu: collapses on mobile or uses a hamburger icon
   - [ ] All buttons are at least 44×44px touch target on mobile
 
@@ -596,10 +597,10 @@ SmartFoodPlanner/
 ---
 
 ### Card 5.2 — Production Database & Environment Variables
-- **Assigned to**: Alan + Ernesto
+- **Assigned to**: Alan + Ernesto + Daniel
 - **Labels**: DevOps, Backend
 - **Description**:
-  Configure production secrets in Azure App Service (Application Settings). Apply EF migrations on startup. Verify auth and CRUD work in production.
+  Configure production secrets in Azure App Service (Application Settings). Apply EF migrations on startup. Alan manages the Azure configuration; Ernesto and Daniel verify all migrations run cleanly and the connection string is correct in the production environment.
 - **Checklist**:
   - [ ] Add to Azure App Service → Configuration → Application Settings:
     - `ConnectionStrings__DefaultConnection` (SQLite path or Azure SQL string)
@@ -617,12 +618,12 @@ SmartFoodPlanner/
 ---
 
 ### Card 5.3 — Accessibility Audit (WCAG 2.1 AA)
-- **Assigned to**: Adam
+- **Assigned to**: Adam + Daniel
 - **Labels**: QA
 - **Description**:
-  Run Lighthouse on all 5 main pages in the deployed app. Fix any accessibility issues to reach a score ≥ 90. Common fixes: missing `alt`, icon-only buttons without labels, low color contrast, form inputs without `<label>`.
+  Run Lighthouse on all 5 main pages in the deployed app. Fix any accessibility issues to reach a score ≥ 90. Adam covers auth/nav pages; Daniel covers Favorites, Cookbook, and Past Plans. Common fixes: missing `alt`, icon-only buttons without labels, low color contrast, form inputs without `<label>`.
 - **Checklist**:
-  - [ ] Run Lighthouse on: Home, Ingredients, MealPlan, RecipeDetail, Cookbook
+  - [ ] Run Lighthouse on: Home, Ingredients, MealPlan, RecipeDetail, Cookbook, Favorites, PastPlans
   - [ ] Target: Accessibility score ≥ 90 on all pages
   - [ ] Fix: add `alt=""` or `aria-label` to all images and icon buttons
   - [ ] Fix: verify color contrast ratio ≥ 4.5:1 for all body text
@@ -632,22 +633,22 @@ SmartFoodPlanner/
 ---
 
 ### Card 5.4 — HTML Validation & Console Error Cleanup
-- **Assigned to**: Adam
+- **Assigned to**: Adam + Daniel
 - **Labels**: QA
 - **Description**:
-  Paste each page's rendered HTML into the W3C Markup Validator. Fix any errors (bad nesting, missing closing tags, invalid attributes). Open browser DevTools and resolve all console errors.
+  Paste each page's rendered HTML into the W3C Markup Validator. Fix any errors (bad nesting, missing closing tags, invalid attributes). Open browser DevTools and resolve all console errors. Adam validates auth and nav pages; Daniel validates the pages he built (Favorites, PastPlans) plus Cookbook.
 - **Checklist**:
-  - [ ] Validate all 5 main pages via W3C validator — zero errors
+  - [ ] Validate all main pages via W3C validator — zero errors
   - [ ] Zero red errors in browser console on page load
   - [ ] Any warnings reviewed and justified or fixed
 
 ---
 
 ### Card 5.5 — Empty States & UX Polish
-- **Assigned to**: Abraham
+- **Assigned to**: Abraham + Daniel
 - **Labels**: Frontend
 - **Description**:
-  Ensure every page that can show zero data has a helpful empty state message. Confirm all async operations show a loading spinner. Do a final visual pass for consistent spacing, typography, and button styles.
+  Ensure every page that can show zero data has a helpful empty state message. Confirm all async operations show a loading spinner. Abraham leads the visual polish pass; Daniel covers the Favorites and Past Plans empty states and verifies loading spinners on those pages.
 - **Checklist**:
   - [ ] Empty states on: Ingredients, Cookbook, Favorites, Past Plans, MealPlan (no plan generated yet)
   - [ ] Loading spinners on: Generate Plan button, all initial page loads
@@ -677,10 +678,10 @@ SmartFoodPlanner/
 ---
 
 ### Card 5.7 — User Documentation (Getting Started Guide)
-- **Assigned to**: Abraham
+- **Assigned to**: Abraham + Daniel
 - **Labels**: QA
 - **Description**:
-  Write a short "Getting Started" section in the GitHub repo README. Cover the 4 main user flows. Max 1 page — clear and simple. This satisfies the course's user documentation requirement.
+  Write a short "Getting Started" section in the GitHub repo README. Cover the 4 main user flows. Max 1 page — clear and simple. This satisfies the course's user documentation requirement. Abraham writes the narrative; Daniel documents the Favorites and Past Plans flows.
 - **Guide must cover**:
   1. How to sign in with Google (account is created automatically on first login)
   2. How to add your ingredients
@@ -699,10 +700,11 @@ SmartFoodPlanner/
 - **Description**:
   Each member records their segment using their own camera and presents the features they built. Edit into a single ~5-7 minute video. Upload to YouTube (unlisted or public). Paste link into Canvas submission.
 - **Segments**:
-  - **Adam** (~1.5 min): Sign in with Google, show that protected pages redirect when logged out, Sign out
-  - **Ernesto** (~1.5 min): Add ingredients, edit, delete
-  - **Alan** (~1.5 min): Generate meal plan, explain AI integration
-  - **Abraham** (~1.5 min): Recipe detail, Favorites, Cookbook, share link
+  - **Adam** (~1 min): Sign in with Google, show that protected pages redirect when logged out, Sign out
+  - **Ernesto** (~1 min): Add ingredients, edit, delete
+  - **Alan** (~1 min): Generate meal plan, explain AI integration
+  - **Abraham** (~1 min): Recipe detail, Cookbook, branding overview
+  - **Daniel** (~1 min): Favorites page, Past Plans page, share link demo
 - **Checklist**:
   - [ ] Rehearse each segment before recording
   - [ ] Use the live Azure app (not localhost) for the recording
@@ -731,16 +733,18 @@ SmartFoodPlanner/
 | Area | Primary | Support |
 |------|---------|---------|
 | Project scaffold & GitHub setup | Alan | Adam |
-| Database models & migrations | Ernesto | Alan |
-| Backend service layer (CRUD) | Ernesto | Alan |
+| Database models & migrations | Ernesto | Daniel |
+| Backend service layer (CRUD) | Ernesto | Daniel |
 | Authentication (Google OAuth + Identity) | Adam | Alan |
 | Auth guards & protected routes | Adam | — |
 | AI service & prompt engineering | Alan | — |
 | AI error handling | Alan | — |
 | Azure deployment & CI/CD | Alan | Ernesto |
-| Blazor pages & components | Abraham | Adam |
-| Responsive design & CSS | Abraham | Adam |
-| Accessibility audit & fixes | Adam | Abraham |
+| Blazor pages & components | Abraham | Daniel, Adam |
+| Responsive design & CSS | Abraham | Daniel, Adam |
+| Favorites page | Daniel | — |
+| Past Meal Plans page | Daniel | — |
+| Accessibility audit & fixes | Adam | Daniel |
 | QA / end-to-end testing | Ernesto (lead) | All |
 | Demo video editing | Abraham | All |
 | Canvas submission | Alan | — |
