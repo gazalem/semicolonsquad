@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using SmartFoodPlanner.Components;
 using SmartFoodPlanner.Components.Account;
 using SmartFoodPlanner.Data;
+using SmartFoodPlanner.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,6 +38,9 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     .AddDefaultTokenProviders();
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
+
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<IAIService, OllamaAIService>();
 
 var app = builder.Build();
 
