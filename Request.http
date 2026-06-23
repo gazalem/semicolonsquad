@@ -1,0 +1,50 @@
+# Define the local variables
+@hostname = localhost
+@port = 11434
+@host = http://{{hostname}}:{{port}}
+
+### TEST ENDPOINT
+POST {{host}}/api/generate
+
+{
+  "model": "gemma3:4b",
+  "prompt": "What is the host of the 2026 World Cup?",
+  "stream": false,
+  "options": {
+    "num_ctx": 4096
+  }
+}
+
+
+
+### Request of Menu
+POST {{host}}/api/generate
+
+{
+  "model": "gemma3:4b",
+  "prompt": "Create a one-week menu. Using the provided following ingredients: 2 pounds ground turkey, chicken or beef, 11⁄2 pounds boneless chicken, 1 dozen eggs, 1 pack shredded cheddar or Mexican blend cheese, 1 package mixed salad greens of your choice, 1 package fresh or frozen vegetables of your choice, 1 box whole grain pasta, 1 jar marinara/pasta sauce, 1 box instant brown rice, 2 cans beans of your choice, 1 pack chili seasoning, 1 15-ounce can diced tomatoes or tomato sauce, 1 bottle soy sauce or teriyaki sauce, 1 jar salsa spice/herb blend of your choice (e.g., Italian, Cajun, lemon pepper, seasoned salt), Salad dressing of your choice.. Return JSON only. Use this schema: {\"recipes\":[{\"day\":\"Monday\",\"name\":\"Recipe Name\",\"prepTime\":\"15 min\",\"cookTime\":\"30 min\",\"ingredients\":[\"ingredient1\",\"ingredient2\"],\"instructions\":\"Cooking instructions here.\"}]}",
+  "stream": false,
+  "format": {
+    "type": "object",
+    "properties": {
+      "recipes": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "day": { "type": "string" },
+            "name": { "type": "string" },
+            "prepTime": { "type": "string" },
+            "cookTime": { "type": "string" },
+            "ingredients": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "instructions": { "type": "string" }
+          },
+          "required": ["day", "name", "prepTime", "cookTime", "ingredients", "instructions"]
+        }
+      }
+    },
+    "required": ["recipes"]
+  }
