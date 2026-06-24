@@ -1,8 +1,11 @@
 ﻿@inject NavigationManager NavigationManager
 
 @code {
+    [Parameter]
+    public string RedirectPath { get; set; } = "/login";
+
     protected override void OnInitialized()
     {
-        NavigationManager.NavigateTo($"Account/Login?returnUrl={Uri.EscapeDataString(NavigationManager.Uri)}", forceLoad: true);
+        NavigationManager.NavigateTo($"{RedirectPath}?returnUrl={Uri.EscapeDataString(NavigationManager.Uri)}", forceLoad: true);
     }
 }

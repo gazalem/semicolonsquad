@@ -1,0 +1,156 @@
+@page "/pastplans"
+@rendermode InteractiveServer
+@attribute [Authorize]
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>Past Plans</PageTitle>
+
+<h1>Past Plans</h1>
+
+<p class="text-secondary">Keep a record of previous meal plans so you can revisit ideas that worked well.</p>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <EditForm Model="planInput" OnValidSubmit="SavePlanAsync">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" role="alert" />
+
+            <div class="form-floating mb-3">
+                <InputText id="past-plan-name" class="form-control" @bind-Value="planInput.Name" placeholder="Plan name" />
+                <label for="past-plan-name">Plan name</label>
+            </div>
+
+            <div class="form-floating mb-3">
+                <InputText id="past-plan-date" class="form-control" @bind-Value="planInput.PlanDate" placeholder="Date" />
+                <label for="past-plan-date">Date</label>
+            </div>
+
+            <div class="form-floating mb-3">
+                <InputTextArea id="past-plan-notes" class="form-control" style="min-height: 120px;" @bind-Value="planInput.Notes" placeholder="Notes" />
+                <label for="past-plan-notes">Notes</label>
+            </div>
+
+            <button type="submit" class="btn btn-primary">@SubmitLabel</button>
+            @if (editingPlanId is not null)
+            {
+                <button type="button" class="btn btn-outline-secondary ms-2" @onclick="CancelPlanEdit">Cancel</button>
+            }
+        </EditForm>
+    </div>
+
+    <div class="col-lg-8">
+        @if (pastPlans.Count == 0)
+        {
+            <p class="text-secondary">No past plans saved yet.</p>
+        }
+        else
+        {
+            <div class="list-group">
+                @foreach (var plan in pastPlans)
+                {
+                    <article class="list-group-item">
+                        <div class="d-flex justify-content-between gap-3">
+                            <div>
+                                <h2 class="h5 mb-2">@plan.Name</h2>
+                                <p class="mb-1 text-secondary">@plan.PlanDate</p>
+                                @if (!string.IsNullOrWhiteSpace(plan.Notes))
+                                {
+                                    <p class="mb-0 text-secondary">@plan.Notes</p>
+                                }
+                            </div>
+                            <div class="text-nowrap">
+                                <button type="button" class="btn btn-sm btn-outline-primary me-2" @onclick="() => EditPlan(plan)">Edit</button>
+                                <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => DeletePlan(plan)">Delete</button>
+                            </div>
+                        </div>
+                    </article>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private readonly PastPlanInput planInput = new();
+    private List<PastPlanEntry> pastPlans = [];
+    private int? editingPlanId;
+    private int nextId = 1;
+
+    private string SubmitLabel => editingPlanId is null ? "Add past plan" : "Save past plan";
+
+    private void SavePlanAsync()
+    {
+        if (editingPlanId is null)
+        {
+            pastPlans.Add(new PastPlanEntry
+            {
+                Id = nextId++,
+                Name = planInput.Name.Trim(),
+                PlanDate = NormalizeOptionalText(planInput.PlanDate),
+                Notes = NormalizeOptionalText(planInput.Notes)
+            });
+        }
+        else
+        {
+            var plan = pastPlans.FirstOrDefault(item => item.Id == editingPlanId);
+            if (plan is not null)
+            {
+                plan.Name = planInput.Name.Trim();
+                plan.PlanDate = NormalizeOptionalText(planInput.PlanDate);
+                plan.Notes = NormalizeOptionalText(planInput.Notes);
+            }
+        }
+
+        CancelPlanEdit();
+    }
+
+    private void EditPlan(PastPlanEntry plan)
+    {
+        editingPlanId = plan.Id;
+        planInput.Name = plan.Name;
+        planInput.PlanDate = plan.PlanDate;
+        planInput.Notes = plan.Notes;
+    }
+
+    private void DeletePlan(PastPlanEntry plan)
+    {
+        pastPlans.RemoveAll(item => item.Id == plan.Id);
+    }
+
+    private void CancelPlanEdit()
+    {
+        editingPlanId = null;
+        planInput.Name = string.Empty;
+        planInput.PlanDate = string.Empty;
+        planInput.Notes = string.Empty;
+    }
+
+    private static string? NormalizeOptionalText(string? value)
+    {
+        var trimmed = value?.Trim();
+        return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
+    }
+
+    private sealed class PastPlanInput
+    {
+        [Required]
+        [StringLength(100)]
+        public string Name { get; set; } = string.Empty;
+
+        [StringLength(50)]
+        public string? PlanDate { get; set; }
+
+        [StringLength(1000)]
+        public string? Notes { get; set; }
+    }
+
+    private sealed class PastPlanEntry
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? PlanDate { get; set; }
+        public string? Notes { get; set; }
+    }
+}
