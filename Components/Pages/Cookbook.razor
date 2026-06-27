@@ -1,0 +1,142 @@
+@page "/cookbook"
+@rendermode InteractiveServer
+@attribute [Authorize]
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>Cookbook</PageTitle>
+
+<h1>Cookbook</h1>
+
+<p class="text-secondary">Save favorite recipes and quick reference notes in one convenient place.</p>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <EditForm Model="recipeInput" OnValidSubmit="SaveRecipeAsync">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" role="alert" />
+
+            <div class="form-floating mb-3">
+                <InputText id="cookbook-title" class="form-control" @bind-Value="recipeInput.Title" placeholder="Recipe title" />
+                <label for="cookbook-title">Recipe title</label>
+            </div>
+
+            <div class="form-floating mb-3">
+                <InputTextArea id="cookbook-notes" class="form-control" style="min-height: 120px;" @bind-Value="recipeInput.Notes" placeholder="Notes" />
+                <label for="cookbook-notes">Notes</label>
+            </div>
+
+            <button type="submit" class="btn btn-primary">@SubmitLabel</button>
+            @if (editingRecipeId is not null)
+            {
+                <button type="button" class="btn btn-outline-secondary ms-2" @onclick="CancelRecipeEdit">Cancel</button>
+            }
+        </EditForm>
+    </div>
+
+    <div class="col-lg-8">
+        @if (cookbookRecipes.Count == 0)
+        {
+            <p class="text-secondary">No cookbook recipes saved yet.</p>
+        }
+        else
+        {
+            <div class="list-group">
+                @foreach (var recipe in cookbookRecipes)
+                {
+                    <article class="list-group-item">
+                        <div class="d-flex justify-content-between gap-3">
+                            <div>
+                                <h2 class="h5 mb-2">@recipe.Title</h2>
+                                @if (!string.IsNullOrWhiteSpace(recipe.Notes))
+                                {
+                                    <p class="mb-0 text-secondary">@recipe.Notes</p>
+                                }
+                            </div>
+                            <div class="text-nowrap">
+                                <button type="button" class="btn btn-sm btn-outline-primary me-2" @onclick="() => EditRecipe(recipe)">Edit</button>
+                                <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => DeleteRecipe(recipe)">Delete</button>
+                            </div>
+                        </div>
+                    </article>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private readonly CookbookRecipeInput recipeInput = new();
+    private List<CookbookRecipe> cookbookRecipes = [];
+    private int? editingRecipeId;
+    private int nextId = 1;
+
+    private string SubmitLabel => editingRecipeId is null ? "Add recipe" : "Save recipe";
+
+    private void SaveRecipeAsync()
+    {
+        if (editingRecipeId is null)
+        {
+            cookbookRecipes.Add(new CookbookRecipe
+            {
+                Id = nextId++,
+                Title = recipeInput.Title.Trim(),
+                Notes = NormalizeOptionalText(recipeInput.Notes)
+            });
+        }
+        else
+        {
+            var recipe = cookbookRecipes.FirstOrDefault(item => item.Id == editingRecipeId);
+            if (recipe is not null)
+            {
+                recipe.Title = recipeInput.Title.Trim();
+                recipe.Notes = NormalizeOptionalText(recipeInput.Notes);
+            }
+        }
+
+        CancelRecipeEdit();
+    }
+
+    private void EditRecipe(CookbookRecipe recipe)
+    {
+        editingRecipeId = recipe.Id;
+        recipeInput.Title = recipe.Title;
+        recipeInput.Notes = recipe.Notes;
+    }
+
+    private void DeleteRecipe(CookbookRecipe recipe)
+    {
+        cookbookRecipes.RemoveAll(item => item.Id == recipe.Id);
+    }
+
+    private void CancelRecipeEdit()
+    {
+        editingRecipeId = null;
+        recipeInput.Title = string.Empty;
+        recipeInput.Notes = string.Empty;
+    }
+
+    private static string? NormalizeOptionalText(string? value)
+    {
+        var trimmed = value?.Trim();
+        return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
+    }
+
+    private sealed class CookbookRecipeInput
+    {
+        [Required]
+        [StringLength(150)]
+        public string Title { get; set; } = string.Empty;
+
+        [StringLength(1000)]
+        public string? Notes { get; set; }
+    }
+
+    private sealed class CookbookRecipe
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string? Notes { get; set; }
+    }
+}

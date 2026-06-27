@@ -65,9 +65,10 @@
 
     private string? Message => identityErrors is null ? null : $"Error: {string.Join(", ", identityErrors.Select(error => error.Description))}";
 
-    protected override void OnInitialized()
+    protected override Task OnInitializedAsync()
     {
-        Input ??= new();
+        RedirectManager.RedirectTo("Account/Login");
+        return Task.CompletedTask;
     }
 
     public async Task RegisterUser(EditContext editContext)

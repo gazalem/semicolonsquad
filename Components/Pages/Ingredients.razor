@@ -1,0 +1,191 @@
+@page "/ingredients"
+@rendermode InteractiveServer
+@attribute [Authorize]
+
+@using System.ComponentModel.DataAnnotations
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using SmartFoodPlanner.Data
+@using SmartFoodPlanner.Models
+
+@inject ApplicationDbContext DbContext
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>My Ingredients</PageTitle>
+
+<h1>My Ingredients</h1>
+
+<p class="text-secondary">Save the ingredients you already have so meal ideas can be built around your pantry.</p>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <EditForm Model="ingredientInput" OnValidSubmit="SaveIngredientAsync">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" role="alert" />
+
+            <div class="form-floating mb-3">
+                <InputText id="ingredient-name" class="form-control" @bind-Value="ingredientInput.Name" placeholder="Ingredient name" />
+                <label for="ingredient-name">Ingredient</label>
+            </div>
+
+            <div class="form-floating mb-3">
+                <InputText id="ingredient-quantity" class="form-control" @bind-Value="ingredientInput.Quantity" placeholder="Quantity" />
+                <label for="ingredient-quantity">Quantity</label>
+            </div>
+
+            <div class="form-floating mb-3">
+                <InputText id="ingredient-category" class="form-control" @bind-Value="ingredientInput.Category" placeholder="Category" />
+                <label for="ingredient-category">Category</label>
+            </div>
+
+            <button type="submit" class="btn btn-primary">@SubmitLabel</button>
+            @if (editingIngredientId is not null)
+            {
+                <button type="button" class="btn btn-outline-secondary ms-2" @onclick="CancelIngredientEdit">Cancel</button>
+            }
+        </EditForm>
+    </div>
+
+    <div class="col-lg-8">
+        @if (ingredients.Count == 0)
+        {
+            <p class="text-secondary">No ingredients saved yet.</p>
+        }
+        else
+        {
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Quantity</th>
+                        <th>Category</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var ingredient in ingredients)
+                    {
+                        <tr>
+                            <td>@ingredient.Name</td>
+                            <td>@ingredient.Quantity</td>
+                            <td>@ingredient.Category</td>
+                            <td class="text-end">
+                                <button type="button" class="btn btn-sm btn-outline-primary me-2" @onclick="() => EditIngredient(ingredient)">Edit</button>
+                                <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => DeleteIngredientAsync(ingredient)">Delete</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+@code {
+    private readonly IngredientInput ingredientInput = new();
+    private List<UserIngredient> ingredients = [];
+    private string userId = string.Empty;
+    private int? editingIngredientId;
+
+    private string SubmitLabel => editingIngredientId is null ? "Add ingredient" : "Save ingredient";
+
+    protected override async Task OnInitializedAsync()
+    {
+        userId = await GetCurrentUserIdAsync();
+        await LoadIngredientsAsync();
+    }
+
+    private async Task SaveIngredientAsync()
+    {
+        if (editingIngredientId is null)
+        {
+            DbContext.UserIngredients.Add(new UserIngredient
+            {
+                UserId = userId,
+                Name = ingredientInput.Name.Trim(),
+                Quantity = NormalizeOptionalText(ingredientInput.Quantity),
+                Category = NormalizeOptionalText(ingredientInput.Category)
+            });
+        }
+        else
+        {
+            var ingredient = await DbContext.UserIngredients
+                .FirstOrDefaultAsync(item => item.Id == editingIngredientId && item.UserId == userId);
+
+            if (ingredient is not null)
+            {
+                ingredient.Name = ingredientInput.Name.Trim();
+                ingredient.Quantity = NormalizeOptionalText(ingredientInput.Quantity);
+                ingredient.Category = NormalizeOptionalText(ingredientInput.Category);
+            }
+        }
+
+        await DbContext.SaveChangesAsync();
+        CancelIngredientEdit();
+        await LoadIngredientsAsync();
+    }
+
+    private void EditIngredient(UserIngredient ingredient)
+    {
+        editingIngredientId = ingredient.Id;
+        ingredientInput.Name = ingredient.Name;
+        ingredientInput.Quantity = ingredient.Quantity;
+        ingredientInput.Category = ingredient.Category;
+    }
+
+    private async Task DeleteIngredientAsync(UserIngredient ingredient)
+    {
+        var savedIngredient = await DbContext.UserIngredients
+            .FirstOrDefaultAsync(item => item.Id == ingredient.Id && item.UserId == userId);
+
+        if (savedIngredient is not null)
+        {
+            DbContext.UserIngredients.Remove(savedIngredient);
+            await DbContext.SaveChangesAsync();
+            await LoadIngredientsAsync();
+        }
+    }
+
+    private async Task LoadIngredientsAsync()
+    {
+        ingredients = await DbContext.UserIngredients
+            .Where(ingredient => ingredient.UserId == userId)
+            .OrderBy(ingredient => ingredient.Name)
+            .ToListAsync();
+    }
+
+    private void CancelIngredientEdit()
+    {
+        editingIngredientId = null;
+        ingredientInput.Name = string.Empty;
+        ingredientInput.Quantity = string.Empty;
+        ingredientInput.Category = string.Empty;
+    }
+
+    private async Task<string> GetCurrentUserIdAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        return authState.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? throw new InvalidOperationException("Unable to find the signed-in user.");
+    }
+
+    private static string? NormalizeOptionalText(string? value)
+    {
+        var trimmed = value?.Trim();
+        return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
+    }
+
+    private sealed class IngredientInput
+    {
+        [Required]
+        [StringLength(100)]
+        public string Name { get; set; } = string.Empty;
+
+        [StringLength(50)]
+        public string? Quantity { get; set; }
+
+        [StringLength(100)]
+        public string? Category { get; set; }
+    }
+}
