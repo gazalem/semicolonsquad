@@ -50,6 +50,7 @@ namespace SmartFoodPlanner.Services {
 
       var request = new GenerateRequest {
         Model = model,
+        System = "You are a helpful meal planning assistant. Always respond with valid JSON only. No explanation, no markdown, just JSON.",
         Prompt = BuildPrompt(ingredientList),
         Stream = false,
         Options = new GenerateOptions { NumCtx = 4096 },
@@ -68,15 +69,24 @@ namespace SmartFoodPlanner.Services {
       }
 
       _logger.LogInformation("Ollama response received, deserializing meal plan");
+      _logger.LogDebug("Ollama raw response: {Response}", ollamaResponse.Response);
 
       var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-      return JsonSerializer.Deserialize<MealPlanResponse>(ollamaResponse.Response, options)
+      var result = JsonSerializer.Deserialize<MealPlanResponse>(ollamaResponse.Response, options)
           ?? throw new JsonException("Failed to deserialize meal plan from Ollama response");
+
+      if (result.Recipes.Count != 7) {
+        _logger.LogWarning("Expected 7 recipes but received {Count}", result.Recipes.Count);
+      }
+
+      return result;
     }
 
     private static string BuildPrompt(string ingredientList) {
-      return $"Create a one-week menu. Using the provided following ingredients: {ingredientList}. " +
-             "Return JSON only. Use this schema: " +
+      return $"I have these ingredients: {ingredientList}. " +
+             "Create exactly 7 recipes, one for each day of the week (Monday through Sunday). " +
+             "Each recipe should be completable in 30 minutes or less. " +
+             "Return JSON only using this schema: " +
              "{\"recipes\":[{\"day\":\"Monday\",\"name\":\"Recipe Name\"," +
              "\"prepTime\":\"15 min\",\"cookTime\":\"30 min\"," +
              "\"ingredients\":[\"ingredient1\",\"ingredient2\"]," +
@@ -86,6 +96,9 @@ namespace SmartFoodPlanner.Services {
     private sealed class GenerateRequest {
       [JsonPropertyName("model")]
       public string Model { get; set; } = string.Empty;
+
+      [JsonPropertyName("system")]
+      public string System { get; set; } = string.Empty;
 
       [JsonPropertyName("prompt")]
       public string Prompt { get; set; } = string.Empty;
