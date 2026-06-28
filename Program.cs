@@ -59,6 +59,8 @@ builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSe
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<IAIService, OllamaAIService>();
 
+builder.Services.AddScoped<IIngredientService, IngredientService>();
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())

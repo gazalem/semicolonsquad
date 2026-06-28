@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using SmartFoodPlanner.Data;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SmartFoodPlanner.Models;
 
@@ -10,7 +11,7 @@ public class UserIngredient
     [Required]
     public string UserId { get; set; } = string.Empty;
 
-    public ApplicationUser? User { get; set; }
+    public ApplicationUser User { get; set; } = null!;
 
     [Required]
     [StringLength(100)]
