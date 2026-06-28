@@ -47,7 +47,6 @@ SmartFoodPlanner/
 │   ├── Ingredient.cs
 │   ├── MealPlan.cs
 │   ├── Recipe.cs
-│   ├── RecipeStep.cs
 │   └── Favorite.cs
 ├── Services/
 │   ├── IIngredientService.cs + IngredientService.cs
@@ -348,19 +347,19 @@ SmartFoodPlanner/
   Replace the stub `ClaudeAIService` with a real implementation. Design a prompt that sends the user's ingredients and requests a structured JSON response with 7 meals. Parse the JSON into typed C# objects.
 - **Prompt structure**:
   ```
-  System: "You are a helpful meal planning assistant. Always respond with valid JSON only."
-  User: "I have these ingredients: {ingredients}. Generate a 7-day meal plan using only 30-minute meals.
+  System: "You are a helpful meal planning assistant. Always respond with valid JSON only. No explanation, no markdown, just JSON."
+  User: "I have these ingredients: {ingredients}. Create exactly 7 recipes, one for each day of the week (Monday through Sunday). Each recipe should be completable in 30 minutes or less.
   Return JSON with this structure:
-  { "meals": [ { "day": 1, "name": "...", "estimatedMinutes": 25,
-    "ingredients": ["..."], "steps": ["..."] } ] }"
+  { "recipes": [ { "day": "Monday", "name": "...", "prepTime": "15 min", "cookTime": "30 min",
+    "ingredients": ["..."], "instructions": "..." } ] }"
   ```
 - **Checklist**:
-  - [ ] Replace stub implementation with real API call
-  - [ ] System prompt sets JSON-only response mode
-  - [ ] User prompt passes ingredients as a comma-separated list
-  - [ ] Deserialize JSON response into `MealPlanResponse` DTO
+  - [x] Replace stub implementation with real API call
+  - [x] System prompt sets JSON-only response mode
+  - [x] User prompt passes ingredients as a comma-separated list
+  - [x] Deserialize JSON response into `MealPlanResponse` DTO
   - [ ] Test with a real API call in debug mode — verify 7 meals are returned
-  - [ ] Log request and response for debugging (no API key in logs)
+  - [x] Log request and response for debugging (no API key in logs)
 
 ---
 
@@ -371,12 +370,11 @@ SmartFoodPlanner/
   Create the data models to persist AI-generated meal plans. Coordinate with Alan on the DTO structure before writing models to ensure they align. Ernesto defines the EF relationships; Daniel creates the model files and runs the migration.
 - **Models**:
   - `MealPlan`: Id, UserId, GeneratedAt, List\<Recipe\>
-  - `Recipe`: Id, MealPlanId, DayNumber, Name, EstimatedMinutes, ShareToken (GUID string), List\<RecipeStep\>
-  - `RecipeStep`: Id, RecipeId, StepNumber, Description
+  - `Recipe`: Id, MealPlanId, Day (string, e.g. "Monday"), Name, PrepTime (string), CookTime (string), Instructions (string), ShareToken (GUID string)
 - **Checklist**:
-  - [ ] Create all 3 model files in `Models/`
-  - [ ] Set up EF relationships: MealPlan →(1:N)→ Recipe →(1:N)→ RecipeStep
-  - [ ] Add `DbSet` entries in `AppDbContext` for all 3 models
+  - [ ] Create 2 model files in `Models/`: `MealPlan.cs`, `Recipe.cs`
+  - [ ] Set up EF relationship: MealPlan →(1:N)→ Recipe
+  - [ ] Add `DbSet` entries in `AppDbContext` for both models
   - [ ] Run: `dotnet ef migrations add AddMealPlanRecipes`
   - [ ] Verify all tables and foreign keys are created correctly
 
