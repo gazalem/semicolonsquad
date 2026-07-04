@@ -6,6 +6,9 @@ using Microsoft.Extensions.Logging;
 
 namespace SmartFoodPlanner.Services {
   public class OllamaAIService : IAIService {
+    private static readonly TimeSpan _requestTimeout = TimeSpan.FromSeconds(30);
+    private static readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
+
     private static readonly JsonElement _formatSchema = JsonDocument.Parse("""
       {
         "type": "object",
@@ -60,26 +63,38 @@ namespace SmartFoodPlanner.Services {
       _logger.LogInformation("Calling Ollama at {BaseUrl} with model {Model}", baseUrl, model);
 
       var client = _httpClientFactory.CreateClient();
-      var httpResponse = await client.PostAsJsonAsync($"{baseUrl}/api/generate", request);
-      httpResponse.EnsureSuccessStatusCode();
+      client.Timeout = _requestTimeout;
 
-      var ollamaResponse = await httpResponse.Content.ReadFromJsonAsync<GenerateResponse>();
-      if (ollamaResponse?.Response is null) {
-        throw new InvalidOperationException("Ollama returned an empty response field");
+      try {
+        var httpResponse = await client.PostAsJsonAsync($"{baseUrl}/api/generate", request);
+        httpResponse.EnsureSuccessStatusCode();
+
+        var ollamaResponse = await httpResponse.Content.ReadFromJsonAsync<GenerateResponse>();
+        if (ollamaResponse?.Response is null) {
+          throw new JsonException("Ollama returned an empty response field");
+        }
+
+        _logger.LogInformation("Ollama response received, deserializing meal plan");
+        _logger.LogDebug("Ollama raw response: {Response}", ollamaResponse.Response);
+
+        var result = JsonSerializer.Deserialize<MealPlanResponse>(ollamaResponse.Response, _jsonOptions)
+            ?? throw new JsonException("Failed to deserialize meal plan from Ollama response");
+
+        if (result.Recipes.Count != 7) {
+          _logger.LogWarning("Expected 7 recipes but received {Count}", result.Recipes.Count);
+        }
+
+        return result;
+      } catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException) {
+        _logger.LogError(ex, "Ollama request timed out after {TimeoutSeconds}s", _requestTimeout.TotalSeconds);
+        throw new AIServiceException("The AI is taking too long. Please try again.", ex);
+      } catch (HttpRequestException ex) {
+        _logger.LogError(ex, "Ollama request failed with status {StatusCode}", ex.StatusCode);
+        throw new AIServiceException("Service temporarily unavailable.", ex);
+      } catch (JsonException ex) {
+        _logger.LogError(ex, "Failed to parse Ollama response as meal plan JSON");
+        throw new AIServiceException("Could not process the AI response. Please try again.", ex);
       }
-
-      _logger.LogInformation("Ollama response received, deserializing meal plan");
-      _logger.LogDebug("Ollama raw response: {Response}", ollamaResponse.Response);
-
-      var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-      var result = JsonSerializer.Deserialize<MealPlanResponse>(ollamaResponse.Response, options)
-          ?? throw new JsonException("Failed to deserialize meal plan from Ollama response");
-
-      if (result.Recipes.Count != 7) {
-        _logger.LogWarning("Expected 7 recipes but received {Count}", result.Recipes.Count);
-      }
-
-      return result;
     }
 
     private static string BuildPrompt(string ingredientList) {

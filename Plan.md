@@ -450,11 +450,11 @@ SmartFoodPlanner/
 - **Description**:
   Wrap the AI service call in proper error handling. Cover three failure scenarios: timeout, API quota/auth error, and JSON parse failure. Each shows a user-friendly message in the UI. Log the full technical error server-side for debugging.
 - **Checklist**:
-  - [ ] Set HTTP timeout to 30 seconds on the API client
-  - [ ] Catch `TimeoutException` → show: "The AI is taking too long. Please try again."
-  - [ ] Catch HTTP 429 / 401 → show: "Service temporarily unavailable."
-  - [ ] Catch `JsonException` → show: "Could not process the AI response. Please try again."
-  - [ ] Log all exceptions with `ILogger` (not Console.WriteLine) for production visibility
+  - [x] Set HTTP timeout to 30 seconds on the API client
+  - [x] Catch `TimeoutException` → show: "The AI is taking too long. Please try again."
+  - [x] Catch HTTP 429 / 401 → show: "Service temporarily unavailable."
+  - [x] Catch `JsonException` → show: "Could not process the AI response. Please try again."
+  - [x] Log all exceptions with `ILogger` (not Console.WriteLine) for production visibility
 
 ---
 
