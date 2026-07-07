@@ -1,0 +1,166 @@
+@page "/recipe/{RecipeId:int}"
+@rendermode InteractiveServer
+@attribute [Authorize]
+
+@using System.Security.Claims
+@using System.Text.Json
+@using System.Text.RegularExpressions
+@using Microsoft.AspNetCore.Authorization
+@using SmartFoodPlanner.Models
+@using SmartFoodPlanner.Services
+
+@inject IMealPlanService MealPlanService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>@(recipe?.Name ?? "Recipe")</PageTitle>
+
+<section class="recipe-page">
+    @if (isLoading)
+    {
+        <div class="recipe-state" role="status">
+            <span class="spinner-border text-success" aria-hidden="true"></span>
+            <p>Setting the table...</p>
+        </div>
+    }
+    else if (recipe is null)
+    {
+        <div class="recipe-state not-found" role="alert">
+            <span aria-hidden="true">🍽️</span>
+            <h1>Recipe not found</h1>
+            <p>This recipe may have been removed, or the link may be incorrect.</p>
+            <a class="btn btn-primary" href="mealplan">Back to Meal Plan</a>
+        </div>
+    }
+    else
+    {
+        <a class="back-link" href="mealplan">← Back to Meal Plan</a>
+
+        <header class="recipe-hero">
+            <div>
+                <p class="eyebrow">@recipe.Day's dinner</p>
+                <h1>@recipe.Name</h1>
+                <span class="time-badge">⏱ @EstimatedTime</span>
+            </div>
+            <div class="recipe-actions" aria-label="Recipe actions coming in Sprint 4">
+                <button class="btn btn-outline-primary" type="button" disabled title="Favorite recipes will be available in Sprint 4">★ Favorite</button>
+                <button class="btn btn-outline-primary" type="button" disabled title="Recipe sharing will be available in Sprint 4">🔗 Share</button>
+            </div>
+        </header>
+
+        <div class="recipe-content">
+            <section class="recipe-panel ingredients-panel">
+                <div class="section-heading">
+                    <span aria-hidden="true">🥕</span>
+                    <div><p class="eyebrow">What you'll need</p><h2>Ingredients</h2></div>
+                </div>
+                @if (Ingredients.Count == 0)
+                {
+                    <p class="empty-copy">No ingredients were provided.</p>
+                }
+                else
+                {
+                    <ul class="ingredient-list">
+                        @foreach (var ingredient in Ingredients)
+                        {
+                            <li>@ingredient</li>
+                        }
+                    </ul>
+                }
+            </section>
+
+            <section class="recipe-panel instructions-panel">
+                <div class="section-heading">
+                    <span aria-hidden="true">👩‍🍳</span>
+                    <div><p class="eyebrow">Let's cook</p><h2>Instructions</h2></div>
+                </div>
+                @if (Steps.Count == 0)
+                {
+                    <p class="empty-copy">No instructions were provided.</p>
+                }
+                else
+                {
+                    <ol class="step-list">
+                        @foreach (var step in Steps)
+                        {
+                            <li><span>@step</span></li>
+                        }
+                    </ol>
+                }
+            </section>
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter]
+    public int RecipeId { get; set; }
+
+    private Recipe? recipe;
+    private bool isLoading = true;
+
+    private IReadOnlyList<string> Ingredients => ParseIngredients(recipe?.Ingredients);
+    private IReadOnlyList<string> Steps => ParseSteps(recipe?.Instructions);
+    private string EstimatedTime => GetEstimatedTime(recipe);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isLoading = true;
+        recipe = null;
+
+        var user = (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;
+        var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (RecipeId > 0 && userId is not null)
+        {
+            recipe = await MealPlanService.GetRecipeByIdAsync(RecipeId, userId);
+        }
+
+        isLoading = false;
+    }
+
+    private static IReadOnlyList<string> ParseIngredients(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return [];
+
+        try
+        {
+            return JsonSerializer.Deserialize<List<string>>(value)
+                ?.Where(item => !string.IsNullOrWhiteSpace(item))
+                .Select(item => item.Trim())
+                .ToList() ?? [];
+        }
+        catch (JsonException)
+        {
+            return SplitText(value);
+        }
+    }
+
+    private static IReadOnlyList<string> ParseSteps(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return [];
+
+        var lines = Regex.Split(value.Trim(), @"(?:\r?\n)+|(?=\s*\d+[.)]\s+)")
+            .Select(line => Regex.Replace(line.Trim(), @"^\d+[.)]\s*", string.Empty))
+            .Where(line => !string.IsNullOrWhiteSpace(line))
+            .ToList();
+
+        return lines.Count > 1 ? lines : [value.Trim()];
+    }
+
+    private static IReadOnlyList<string> SplitText(string value) => value
+        .Split([',', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .ToList();
+
+    private static string GetEstimatedTime(Recipe? item)
+    {
+        if (item is null) return "30 min";
+        var minutes = ParseMinutes(item.PrepTime) + ParseMinutes(item.CookTime);
+        return minutes > 0 ? $"{minutes} min" : item.CookTime ?? item.PrepTime ?? "30 min";
+    }
+
+    private static int ParseMinutes(string? value)
+    {
+        var match = Regex.Match(value ?? string.Empty, @"\d+");
+        return match.Success && int.TryParse(match.Value, out var minutes) ? minutes : 0;
+    }
+}

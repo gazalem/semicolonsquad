@@ -15,6 +15,8 @@ namespace SmartFoodPlanner.Services {
         "properties": {
           "recipes": {
             "type": "array",
+            "minItems": 7,
+            "maxItems": 7,
             "items": {
               "type": "object",
               "properties": {
@@ -97,16 +99,88 @@ namespace SmartFoodPlanner.Services {
       }
     }
 
-    private static string BuildPrompt(string ingredientList) {
-      return $"I have these ingredients: {ingredientList}. " +
-             "Create exactly 7 recipes, one for each day of the week (Monday through Sunday). " +
-             "Each recipe should be completable in 30 minutes or less. " +
-             "Return JSON only using this schema: " +
-             "{\"recipes\":[{\"day\":\"Monday\",\"name\":\"Recipe Name\"," +
-             "\"prepTime\":\"15 min\",\"cookTime\":\"30 min\"," +
-             "\"ingredients\":[\"ingredient1\",\"ingredient2\"]," +
-             "\"instructions\":\"Cooking instructions here.\"}]}";
-    }
+private static string BuildPrompt(string ingredientList) {
+  return $$"""
+  I have these ingredients available:
+  {{ingredientList}}
+
+  Create a 7-day meal plan with exactly one recipe for each day:
+  Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday.
+
+  Requirements:
+  - Return exactly 7 recipes.
+  - Do not return fewer than 7 recipes.
+  - Do not combine multiple days into one recipe.
+  - Each recipe must be 30 minutes or less total cook/prep time.
+  - Use the available ingredients when possible.
+  - You may add basic pantry items if needed.
+  - Return JSON only.
+  - Do not include markdown, comments, or explanation.
+
+  The JSON must use this exact structure:
+
+  {
+    "recipes": [
+      {
+        "day": "Monday",
+        "name": "Recipe Name",
+        "prepTime": "10 min",
+        "cookTime": "20 min",
+        "ingredients": ["ingredient 1", "ingredient 2"],
+        "instructions": "Step-by-step cooking instructions."
+      },
+      {
+        "day": "Tuesday",
+        "name": "Recipe Name",
+        "prepTime": "10 min",
+        "cookTime": "20 min",
+        "ingredients": ["ingredient 1", "ingredient 2"],
+        "instructions": "Step-by-step cooking instructions."
+      },
+      {
+        "day": "Wednesday",
+        "name": "Recipe Name",
+        "prepTime": "10 min",
+        "cookTime": "20 min",
+        "ingredients": ["ingredient 1", "ingredient 2"],
+        "instructions": "Step-by-step cooking instructions."
+      },
+      {
+        "day": "Thursday",
+        "name": "Recipe Name",
+        "prepTime": "10 min",
+        "cookTime": "20 min",
+        "ingredients": ["ingredient 1", "ingredient 2"],
+        "instructions": "Step-by-step cooking instructions."
+      },
+      {
+        "day": "Friday",
+        "name": "Recipe Name",
+        "prepTime": "10 min",
+        "cookTime": "20 min",
+        "ingredients": ["ingredient 1", "ingredient 2"],
+        "instructions": "Step-by-step cooking instructions."
+      },
+      {
+        "day": "Saturday",
+        "name": "Recipe Name",
+        "prepTime": "10 min",
+        "cookTime": "20 min",
+        "ingredients": ["ingredient 1", "ingredient 2"],
+        "instructions": "Step-by-step cooking instructions."
+      },
+      {
+        "day": "Sunday",
+        "name": "Recipe Name",
+        "prepTime": "10 min",
+        "cookTime": "20 min",
+        "ingredients": ["ingredient 1", "ingredient 2"],
+        "instructions": "Step-by-step cooking instructions."
+      }
+    ]
+  }
+  """;
+}
 
     private sealed class GenerateRequest {
       [JsonPropertyName("model")]

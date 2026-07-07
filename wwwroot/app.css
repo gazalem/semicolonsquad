@@ -1,5 +1,23 @@
+:root {
+    --color-primary: #2f6b3c;
+    --color-primary-dark: #204c2a;
+    --color-accent: #d97732;
+    --color-bg: #fbf8f0;
+    --color-surface: #ffffff;
+    --color-text: #26342a;
+    --color-muted: #66726a;
+    --font-body: "Segoe UI", system-ui, -apple-system, sans-serif;
+    --space-1: .5rem;
+    --space-2: 1rem;
+    --space-3: 1.5rem;
+    --space-4: 2rem;
+}
+
 html, body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: var(--font-body);
+    background: var(--color-bg);
+    color: var(--color-text);
+    margin: 0;
 }
 
 a, .btn-link {
@@ -8,8 +26,13 @@ a, .btn-link {
 
 .btn-primary {
     color: #fff;
-    background-color: #1b6ec2;
-    border-color: #1861ac;
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.btn-primary:hover, .btn-primary:focus {
+    background-color: var(--color-primary-dark);
+    border-color: var(--color-primary-dark);
 }
 
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
