@@ -264,15 +264,81 @@ namespace SmartFoodPlanner.Migrations
                     b.ToTable("FavoriteRecipes");
                 });
 
-            modelBuilder.Entity("SmartFoodPlanner.Models.UserIngredient", b =>
+            modelBuilder.Entity("SmartFoodPlanner.Models.MealPlan", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("Category")
-                        .HasMaxLength(100)
+                    b.Property<DateTime>("GeneratedAt")
                         .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("MealPlans");
+                });
+
+            modelBuilder.Entity("SmartFoodPlanner.Models.Recipe", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CookTime")
+                        .HasMaxLength(30)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Day")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Ingredients")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Instructions")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("MealPlanId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PrepTime")
+                        .HasMaxLength(30)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ShareToken")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MealPlanId");
+
+                    b.HasIndex("ShareToken")
+                        .IsUnique();
+
+                    b.ToTable("Recipes");
+                });
+
+            modelBuilder.Entity("SmartFoodPlanner.Models.UserIngredient", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
@@ -284,6 +350,10 @@ namespace SmartFoodPlanner.Migrations
 
                     b.Property<string>("Quantity")
                         .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Unit")
+                        .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("UserId")
@@ -410,6 +480,28 @@ namespace SmartFoodPlanner.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("SmartFoodPlanner.Models.MealPlan", b =>
+                {
+                    b.HasOne("SmartFoodPlanner.Data.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("SmartFoodPlanner.Models.Recipe", b =>
+                {
+                    b.HasOne("SmartFoodPlanner.Models.MealPlan", "MealPlan")
+                        .WithMany("Recipes")
+                        .HasForeignKey("MealPlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MealPlan");
+                });
+
             modelBuilder.Entity("SmartFoodPlanner.Models.UserIngredient", b =>
                 {
                     b.HasOne("SmartFoodPlanner.Data.ApplicationUser", "User")
@@ -419,6 +511,11 @@ namespace SmartFoodPlanner.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("SmartFoodPlanner.Models.MealPlan", b =>
+                {
+                    b.Navigation("Recipes");
                 });
 #pragma warning restore 612, 618
         }

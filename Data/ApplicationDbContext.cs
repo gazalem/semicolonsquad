@@ -10,6 +10,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
     public DbSet<FavoriteRecipe> FavoriteRecipes => Set<FavoriteRecipe>();
 
+    public DbSet<MealPlan> MealPlans => Set<MealPlan>();
+
+    public DbSet<Recipe> Recipes => Set<Recipe>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -31,5 +35,21 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
         builder.Entity<FavoriteRecipe>()
             .HasIndex(recipe => new { recipe.UserId, recipe.Title });
+
+        builder.Entity<MealPlan>()
+            .HasOne(plan => plan.User)
+            .WithMany()
+            .HasForeignKey(plan => plan.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<MealPlan>()
+            .HasMany(plan => plan.Recipes)
+            .WithOne(recipe => recipe.MealPlan)
+            .HasForeignKey(recipe => recipe.MealPlanId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<Recipe>()
+            .HasIndex(recipe => recipe.ShareToken)
+            .IsUnique();
     }
 }

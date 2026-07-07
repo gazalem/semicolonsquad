@@ -17,11 +17,13 @@
 
 .top-row {
     min-height: 3.5rem;
-    background-color: rgba(0,0,0,0.4);
+    background-color: rgba(0,0,0,0.18);
 }
 
 .navbar-brand {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+    white-space: normal;
 }
 
 .bi {

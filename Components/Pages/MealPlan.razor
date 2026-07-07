@@ -2,141 +2,158 @@
 @rendermode InteractiveServer
 @attribute [Authorize]
 
-@using System.ComponentModel.DataAnnotations
+@using System.Security.Claims
+@using System.Text.RegularExpressions
 @using Microsoft.AspNetCore.Authorization
+@using SmartFoodPlanner.Models
+@using SmartFoodPlanner.Services
 
-<PageTitle>Meal Plan</PageTitle>
+@inject IAIService AIService
+@inject IMealPlanService MealPlanService
+@inject IIngredientService IngredientService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
 
-<h1>Meal Plan</h1>
+<PageTitle>Weekly Meal Plan</PageTitle>
 
-<p class="text-secondary">Map out simple meal ideas for the week and keep a note of what needs attention.</p>
-
-<div class="row g-4">
-    <div class="col-lg-4">
-        <EditForm Model="planInput" OnValidSubmit="SavePlanAsync">
-            <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" role="alert" />
-
-            <div class="form-floating mb-3">
-                <InputText id="plan-name" class="form-control" @bind-Value="planInput.Name" placeholder="Plan name" />
-                <label for="plan-name">Plan name</label>
-            </div>
-
-            <div class="form-floating mb-3">
-                <InputTextArea id="plan-notes" class="form-control" style="min-height: 120px;" @bind-Value="planInput.Notes" placeholder="Notes" />
-                <label for="plan-notes">Notes</label>
-            </div>
-
-            <button type="submit" class="btn btn-primary">@SubmitLabel</button>
-            @if (editingPlanId is not null)
+<section class="meal-plan-page">
+    <header class="plan-hero">
+        <p class="eyebrow">Fresh ideas for your pantry</p>
+        <h1>This Week's Meal Plan</h1>
+        <p>Turn the ingredients you have into seven quick, practical dinners.</p>
+        <button class="btn btn-primary generate-button" type="button" disabled="@isGenerating" @onclick="GeneratePlanAsync">
+            @if (isGenerating)
             {
-                <button type="button" class="btn btn-outline-secondary ms-2" @onclick="CancelPlanEdit">Cancel</button>
+                <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                <span>Generating…</span>
             }
-        </EditForm>
-    </div>
+            else
+            {
+                <span>Generate This Week's Plan</span>
+            }
+        </button>
+    </header>
 
-    <div class="col-lg-8">
-        @if (mealPlans.Count == 0)
-        {
-            <p class="text-secondary">No meal plans created yet.</p>
-        }
-        else
-        {
-            <div class="list-group">
-                @foreach (var plan in mealPlans)
-                {
-                    <article class="list-group-item">
-                        <div class="d-flex justify-content-between gap-3">
-                            <div>
-                                <h2 class="h5 mb-2">@plan.Name</h2>
-                                @if (!string.IsNullOrWhiteSpace(plan.Notes))
-                                {
-                                    <p class="mb-0 text-secondary">@plan.Notes</p>
-                                }
-                            </div>
-                            <div class="text-nowrap">
-                                <button type="button" class="btn btn-sm btn-outline-primary me-2" @onclick="() => EditPlan(plan)">Edit</button>
-                                <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => DeletePlan(plan)">Delete</button>
-                            </div>
-                        </div>
-                    </article>
-                }
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="error-banner" role="alert">
+            <strong>We couldn't prepare your plan.</strong>
+            <span>@errorMessage</span>
+        </div>
+    }
+
+    @if (isGenerating)
+    {
+        <div class="loading-state" role="status" aria-live="polite">
+            <div class="cooking-spinner" aria-hidden="true">🍳</div>
+            <h2>Cooking up your plan...</h2>
+            <p>This can take a moment while we match meals to your pantry.</p>
+        </div>
+    }
+    else if (currentPlan is not null)
+    {
+        <div class="week-heading">
+            <div>
+                <p class="eyebrow">Your seven-day lineup</p>
+                <h2>Dinner is decided</h2>
             </div>
-        }
-    </div>
-</div>
+            <span class="generated-date">Generated @currentPlan.GeneratedAt.ToLocalTime().ToString("MMM d")</span>
+        </div>
+
+        <div class="weekly-grid">
+            @foreach (var recipe in OrderedRecipes)
+            {
+                var dayNumber = GetDayNumber(recipe.Day);
+                <button class="day-card" type="button" @onclick="() => OpenRecipe(recipe.Id)" aria-label="Open @recipe.Name for @recipe.Day">
+                    <div class="day-label">Day @dayNumber <span>@recipe.Day</span></div>
+                    <div class="meal-icon" aria-hidden="true">@GetMealIcon(dayNumber)</div>
+                    <h3>@recipe.Name</h3>
+                    <span class="time-badge">⏱ @GetEstimatedTime(recipe)</span>
+                    <span class="view-recipe">View recipe →</span>
+                </button>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="empty-plan">
+            <span aria-hidden="true">📅</span>
+            <h2>Your week is a blank canvas</h2>
+            <p>Generate a plan to see Monday through Sunday meal ideas here.</p>
+        </div>
+    }
+</section>
 
 @code {
-    private readonly PlanInput planInput = new();
-    private List<MealPlanEntry> mealPlans = [];
-    private int? editingPlanId;
-    private int nextId = 1;
+    private static readonly string[] Days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    private SmartFoodPlanner.Models.MealPlan? currentPlan;
+    private string userId = string.Empty;
+    private string? errorMessage;
+    private bool isGenerating;
 
-    private string SubmitLabel => editingPlanId is null ? "Add plan" : "Save plan";
+    private IEnumerable<Recipe> OrderedRecipes => currentPlan is null
+        ? Enumerable.Empty<Recipe>()
+        : currentPlan.Recipes.OrderBy(recipe => Array.FindIndex(Days, day => day.Equals(recipe.Day, StringComparison.OrdinalIgnoreCase)));
 
-    private void SavePlanAsync()
+    protected override async Task OnInitializedAsync()
     {
-        if (editingPlanId is null)
+        var user = (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;
+        userId = user.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? throw new InvalidOperationException("Unable to find the signed-in user.");
+    }
+
+    private async Task GeneratePlanAsync()
+    {
+        if (isGenerating) return;
+
+        isGenerating = true;
+        errorMessage = null;
+
+        try
         {
-            mealPlans.Add(new MealPlanEntry
+            var ingredients = await IngredientService.GetIngredientsAsync(userId);
+            var ingredientNames = ingredients.Select(item => item.Name).ToList();
+            var response = await AIService.GenerateMealPlanAsync(ingredientNames);
+
+            if (response.Recipes.Count != 7)
             {
-                Id = nextId++,
-                Name = planInput.Name.Trim(),
-                Notes = NormalizeOptionalText(planInput.Notes)
-            });
-        }
-        else
-        {
-            var plan = mealPlans.FirstOrDefault(item => item.Id == editingPlanId);
-            if (plan is not null)
-            {
-                plan.Name = planInput.Name.Trim();
-                plan.Notes = NormalizeOptionalText(planInput.Notes);
+                throw new InvalidOperationException("The generator returned an incomplete week. Please try again.");
             }
+
+            currentPlan = await MealPlanService.SaveMealPlanAsync(userId, response);
         }
-
-        CancelPlanEdit();
+        catch (Exception)
+        {
+            errorMessage = "Something went wrong while generating meals. Check that the AI service is running, then try again.";
+        }
+        finally
+        {
+            isGenerating = false;
+        }
     }
 
-    private void EditPlan(MealPlanEntry plan)
+    private void OpenRecipe(int recipeId) => Navigation.NavigateTo($"/recipe/{recipeId}");
+
+    private static int GetDayNumber(string day)
     {
-        editingPlanId = plan.Id;
-        planInput.Name = plan.Name;
-        planInput.Notes = plan.Notes;
+        var index = Array.FindIndex(Days, item => item.Equals(day, StringComparison.OrdinalIgnoreCase));
+        return index < 0 ? 1 : index + 1;
     }
 
-    private void DeletePlan(MealPlanEntry plan)
+    private static string GetMealIcon(int dayNumber) => dayNumber switch
     {
-        mealPlans.RemoveAll(item => item.Id == plan.Id);
+        1 => "🥗", 2 => "🍝", 3 => "🌮", 4 => "🍲", 5 => "🍛", 6 => "🥘", _ => "🍽️"
+    };
+
+    private static string GetEstimatedTime(Recipe recipe)
+    {
+        var minutes = ParseMinutes(recipe.PrepTime) + ParseMinutes(recipe.CookTime);
+        return minutes > 0 ? $"{minutes} min" : recipe.CookTime ?? recipe.PrepTime ?? "30 min";
     }
 
-    private void CancelPlanEdit()
+    private static int ParseMinutes(string? value)
     {
-        editingPlanId = null;
-        planInput.Name = string.Empty;
-        planInput.Notes = string.Empty;
-    }
-
-    private static string? NormalizeOptionalText(string? value)
-    {
-        var trimmed = value?.Trim();
-        return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
-    }
-
-    private sealed class PlanInput
-    {
-        [Required]
-        [StringLength(100)]
-        public string Name { get; set; } = string.Empty;
-
-        [StringLength(500)]
-        public string? Notes { get; set; }
-    }
-
-    private sealed class MealPlanEntry
-    {
-        public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public string? Notes { get; set; }
+        var match = Regex.Match(value ?? string.Empty, @"\d+");
+        return match.Success && int.TryParse(match.Value, out var minutes) ? minutes : 0;
     }
 }

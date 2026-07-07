@@ -1,0 +1,34 @@
+.meal-plan-page { max-width: 1100px; margin: 0 auto; }
+.plan-hero { text-align: center; padding: 2.5rem 1rem 2rem; }
+.plan-hero h1 { color: var(--color-primary-dark); font-size: clamp(2rem, 5vw, 3.2rem); margin: .2rem 0 .6rem; }
+.plan-hero > p:not(.eyebrow) { color: var(--color-muted); margin-bottom: 1.5rem; }
+.eyebrow { color: var(--color-accent); font-size: .78rem; font-weight: 800; letter-spacing: .12em; margin: 0; text-transform: uppercase; }
+.generate-button { min-width: 250px; min-height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: .6rem; border-radius: 10px; font-weight: 700; }
+.error-banner { background: #fff1ee; border: 1px solid #e5a294; border-left: 5px solid #b94732; border-radius: 10px; color: #792c20; display: flex; flex-direction: column; gap: .15rem; margin-bottom: 1.25rem; padding: 1rem 1.2rem; }
+.loading-state, .empty-plan { background: rgba(255,255,255,.7); border: 1px dashed #bdcbb9; border-radius: 16px; padding: 4rem 1rem; text-align: center; }
+.loading-state h2, .empty-plan h2 { color: var(--color-primary-dark); font-size: 1.35rem; margin: .8rem 0 .25rem; }
+.loading-state p, .empty-plan p { color: var(--color-muted); margin: 0; }
+.cooking-spinner { animation: cook 1.1s ease-in-out infinite; display: inline-block; font-size: 3rem; }
+@keyframes cook { 0%, 100% { transform: rotate(-8deg) translateY(0); } 50% { transform: rotate(8deg) translateY(-5px); } }
+.empty-plan > span { font-size: 3rem; }
+.week-heading { align-items: end; display: flex; justify-content: space-between; margin: .5rem 0 1rem; }
+.week-heading h2 { color: var(--color-primary-dark); margin: .2rem 0 0; }
+.generated-date { color: var(--color-muted); font-size: .88rem; }
+.weekly-grid { display: grid; gap: 1rem; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.day-card { background: white; border: 1px solid #dfe7dc; border-radius: 15px; box-shadow: 0 5px 18px rgba(38,52,42,.07); color: var(--color-text); display: flex; flex-direction: column; min-height: 240px; padding: 1.15rem; text-align: left; transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease; }
+.day-card:hover, .day-card:focus-visible { border-color: var(--color-accent); box-shadow: 0 10px 24px rgba(38,52,42,.12); transform: translateY(-3px); }
+.day-label { color: var(--color-accent); font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.day-label span { color: var(--color-muted); font-weight: 600; margin-left: .3rem; }
+.meal-icon { font-size: 2.2rem; margin: 1rem 0 .7rem; }
+.day-card h3 { color: var(--color-primary-dark); font-size: 1.08rem; line-height: 1.35; margin: 0 0 .75rem; }
+.time-badge { align-self: flex-start; background: #eef5eb; border-radius: 999px; color: var(--color-primary); font-size: .78rem; font-weight: 700; padding: .3rem .6rem; }
+.view-recipe { color: var(--color-primary); font-size: .82rem; font-weight: 700; margin-top: auto; padding-top: 1rem; }
+
+@media (max-width: 900px) { .weekly-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) {
+    .plan-hero { padding: 1.5rem 0; }
+    .generate-button { min-width: 0; width: 100%; }
+    .weekly-grid { grid-template-columns: 1fr; }
+    .day-card { min-height: 210px; }
+    .week-heading { align-items: flex-start; flex-direction: column; gap: .4rem; }
+}

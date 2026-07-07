@@ -58,6 +58,8 @@ builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSe
 
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<IAIService, OllamaAIService>();
+builder.Services.AddScoped<IIngredientService, IngredientService>();
+builder.Services.AddScoped<IMealPlanService, MealPlanService>();
 
 var app = builder.Build();
 

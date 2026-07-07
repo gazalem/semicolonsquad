@@ -20,7 +20,7 @@ public class UserIngredient
     public string? Quantity { get; set; }
 
     [StringLength(100)]
-    public string? Category { get; set; }
+    public string? Unit { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
