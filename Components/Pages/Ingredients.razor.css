@@ -30,4 +30,5 @@
     .form-grid { grid-template-columns: 1fr; }
     .ingredient-card { align-items: flex-start; }
     .card-actions { flex-shrink: 0; }
+    .icon-button { width: 2.75rem; height: 2.75rem; }
 }

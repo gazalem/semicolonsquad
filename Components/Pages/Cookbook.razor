@@ -7,11 +7,12 @@
 
 <PageTitle>Cookbook</PageTitle>
 
+<section class="responsive-page">
 <h1>Cookbook</h1>
 
 <p class="text-secondary">Save favorite recipes and quick reference notes in one convenient place.</p>
 
-<div class="row g-4">
+<div class="row g-4 responsive-page-grid">
     <div class="col-lg-4">
         <EditForm Model="recipeInput" OnValidSubmit="SaveRecipeAsync">
             <DataAnnotationsValidator />
@@ -46,15 +47,15 @@
                 @foreach (var recipe in cookbookRecipes)
                 {
                     <article class="list-group-item">
-                        <div class="d-flex justify-content-between gap-3">
-                            <div>
+                        <div class="saved-item-layout">
+                            <div class="saved-item-copy">
                                 <h2 class="h5 mb-2">@recipe.Title</h2>
                                 @if (!string.IsNullOrWhiteSpace(recipe.Notes))
                                 {
                                     <p class="mb-0 text-secondary">@recipe.Notes</p>
                                 }
                             </div>
-                            <div class="text-nowrap">
+                            <div class="saved-item-actions">
                                 <button type="button" class="btn btn-sm btn-outline-primary me-2" @onclick="() => EditRecipe(recipe)">Edit</button>
                                 <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => DeleteRecipe(recipe)">Delete</button>
                             </div>
@@ -65,6 +66,7 @@
         }
     </div>
 </div>
+</section>
 
 @code {
     private readonly CookbookRecipeInput recipeInput = new();

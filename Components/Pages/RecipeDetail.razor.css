@@ -34,3 +34,11 @@
     .recipe-actions .btn { flex: 1; }
     .recipe-content { grid-template-columns: 1fr; }
 }
+
+@media (max-width: 520px) {
+    .recipe-page { padding-top: 1rem; }
+    .recipe-panel { padding: 1rem; }
+    .recipe-actions { flex-direction: column; }
+    .step-list li { gap: .75rem; grid-template-columns: 2.2rem minmax(0, 1fr); }
+    .step-list span, .ingredient-list li { overflow-wrap: anywhere; }
+}
