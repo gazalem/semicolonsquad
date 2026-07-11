@@ -1,0 +1,82 @@
+@page "/pastplans"
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using SmartFoodPlanner.Models
+@using SmartFoodPlanner.Services
+
+@attribute [Authorize]
+
+@inject IMealPlanService MealPlanService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+
+<PageTitle>Past Meal Plans</PageTitle>
+
+<h1>Past Meal Plans</h1>
+<p>Here you can review your previously generated weekly meal plans.</p>
+
+@if (isLoading)
+{
+    <p>Loading your meal plans...</p>
+}
+else if (!mealPlans.Any())
+{
+    <div class="empty-state">
+        <p>No plans yet — generate your first one!</p>
+        <button class="btn btn-primary" @onclick="GoToMealPlan">Generate your first plan</button>
+    </div>
+}
+else
+{
+    <div class="plans-container">
+        @foreach (var plan in mealPlans)
+        {
+            <div class="plan-card">
+                <h3>@plan.GeneratedAt.ToLocalTime().ToString("MMMM dd, yyyy - hh:mm tt")</h3>
+                <p>Recipes: @plan.Recipes.Count</p>
+                <button class="btn btn-secondary" @onclick="() => ViewPlan(plan.Id)">
+                    View this plan
+                </button>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<MealPlan> mealPlans = new();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity is null || !user.Identity.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        mealPlans = await MealPlanService.GetMealPlansAsync(userId);
+        isLoading = false;
+    }
+
+    private void ViewPlan(int mealPlanId)
+    {
+        Navigation.NavigateTo($"/mealplanhistory/{mealPlanId}");
+    }
+
+    private void GoToMealPlan()
+    {
+        Navigation.NavigateTo("/mealplan");
+    }
+}

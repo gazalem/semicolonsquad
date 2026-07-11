@@ -1,0 +1,92 @@
+@page "/mealplanhistory/{MealPlanId:int}"
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using SmartFoodPlanner.Models
+@using SmartFoodPlanner.Services
+
+@attribute [Authorize]
+
+@inject IMealPlanService MealPlanService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+
+<PageTitle>Meal Plan History</PageTitle>
+
+<h1>Past Meal Plan</h1>
+
+@if (isLoading)
+{
+    <p>Loading meal plan...</p>
+}
+else if (mealPlan is null)
+{
+    <p>Meal plan not found.</p>
+}
+else
+{
+    <p>Generated on: @mealPlan.GeneratedAt.ToLocalTime().ToString("MMMM dd, yyyy - hh:mm tt")</p>
+
+    <div class="meal-grid">
+        @foreach (var recipe in mealPlan.Recipes.OrderBy(r => GetDayOrder(r.Day)))
+        {
+            <div class="meal-card">
+                <h3>@recipe.Day</h3>
+                <p><strong>@recipe.Name</strong></p>
+                <p>Prep: @recipe.PrepTime</p>
+                <p>Cook: @recipe.CookTime</p>
+                <button class="btn btn-secondary" @onclick="() => ViewRecipe(recipe.Id)">
+                    View Recipe
+                </button>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int MealPlanId { get; set; }
+
+    private MealPlan? mealPlan;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity is null || !user.Identity.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        mealPlan = await MealPlanService.GetMealPlanByIdAsync(MealPlanId, userId);
+        isLoading = false;
+    }
+
+    private void ViewRecipe(int recipeId)
+    {
+        Navigation.NavigateTo($"/recipe/{recipeId}");
+    }
+
+    private int GetDayOrder(string day) => day switch
+    {
+        "Monday" => 1,
+        "Tuesday" => 2,
+        "Wednesday" => 3,
+        "Thursday" => 4,
+        "Friday" => 5,
+        "Saturday" => 6,
+        "Sunday" => 7,
+        _ => 99
+    };
+}
