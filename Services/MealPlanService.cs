@@ -45,6 +45,10 @@ public sealed class MealPlanService(ApplicationDbContext dbContext) : IMealPlanS
         dbContext.Recipes.AsNoTracking()
             .FirstOrDefaultAsync(recipe => recipe.Id == recipeId && recipe.MealPlan!.UserId == userId);
 
+    public Task<Recipe?> GetRecipeByTokenAsync(string shareToken) =>
+        dbContext.Recipes.AsNoTracking()
+            .FirstOrDefaultAsync(recipe => recipe.ShareToken == shareToken);
+
     private static string? Normalize(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

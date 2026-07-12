@@ -8,4 +8,5 @@ public interface IMealPlanService
     Task<List<MealPlan>> GetMealPlansAsync(string userId);
     Task<MealPlan?> GetMealPlanByIdAsync(int id, string userId);
     Task<Recipe?> GetRecipeByIdAsync(int recipeId, string userId);
+    Task<Recipe?> GetRecipeByTokenAsync(string shareToken);
 }

@@ -1,18 +1,12 @@
-@page "/recipe/{RecipeId:int}"
+@page "/share/{Token}"
 @rendermode InteractiveServer
-@attribute [Authorize]
 
-@using System.Security.Claims
-@using Microsoft.AspNetCore.Authorization
 @using SmartFoodPlanner.Models
 @using SmartFoodPlanner.Services
 
 @inject IMealPlanService MealPlanService
-@inject AuthenticationStateProvider AuthenticationStateProvider
-@inject NavigationManager NavigationManager
-@inject IJSRuntime JS
 
-<PageTitle>@(recipe?.Name ?? "Recipe")</PageTitle>
+<PageTitle>@(recipe?.Name ?? "Shared Recipe")</PageTitle>
 
 <section class="recipe-page">
     @if (isLoading)
@@ -27,25 +21,17 @@
         <div class="recipe-state not-found" role="alert">
             <span aria-hidden="true">🍽️</span>
             <h1>Recipe not found</h1>
-            <p>This recipe may have been removed, or the link may be incorrect.</p>
-            <a class="btn btn-primary" href="mealplan">Back to Meal Plan</a>
+            <p>This link may be incorrect or the recipe may have been removed.</p>
+            <a class="btn btn-primary" href="/">Go home</a>
         </div>
     }
     else
     {
-        <a class="back-link" href="mealplan">← Back to Meal Plan</a>
-
         <header class="recipe-hero">
             <div>
                 <p class="eyebrow">@recipe.Day's dinner</p>
                 <h1>@recipe.Name</h1>
                 <span class="time-badge">⏱ @EstimatedTime</span>
-            </div>
-            <div class="recipe-actions">
-                <button class="btn btn-outline-primary" type="button" disabled title="Favorite recipes will be available in Sprint 4">★ Favorite</button>
-                <button class="btn btn-outline-primary" type="button" @onclick="CopyShareLinkAsync">
-                    @(linkCopied ? "✓ Link copied" : "🔗 Share")
-                </button>
             </div>
         </header>
 
@@ -95,11 +81,10 @@
 
 @code {
     [Parameter]
-    public int RecipeId { get; set; }
+    public string Token { get; set; } = string.Empty;
 
     private Recipe? recipe;
     private bool isLoading = true;
-    private bool linkCopied;
 
     private IReadOnlyList<string> Ingredients => RecipeTextFormatter.ParseIngredients(recipe?.Ingredients);
     private IReadOnlyList<string> Steps => RecipeTextFormatter.ParseSteps(recipe?.Instructions);
@@ -108,28 +93,7 @@
     protected override async Task OnParametersSetAsync()
     {
         isLoading = true;
-        recipe = null;
-        linkCopied = false;
-
-        var user = (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;
-        var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
-
-        if (RecipeId > 0 && userId is not null)
-        {
-            recipe = await MealPlanService.GetRecipeByIdAsync(RecipeId, userId);
-        }
-
+        recipe = string.IsNullOrWhiteSpace(Token) ? null : await MealPlanService.GetRecipeByTokenAsync(Token);
         isLoading = false;
-    }
-
-    private async Task CopyShareLinkAsync()
-    {
-        if (recipe is null) return;
-
-        var shareUrl = $"{NavigationManager.BaseUri}share/{recipe.ShareToken}";
-        await JS.InvokeVoidAsync("navigator.clipboard.writeText", shareUrl);
-
-        linkCopied = true;
-        StateHasChanged();
     }
 }

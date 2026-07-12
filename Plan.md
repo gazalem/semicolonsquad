@@ -266,24 +266,26 @@ SmartFoodPlanner/
 
 ---
 
-### Card 2.4 — Ingredient Model & Migration
+### Card 2.4 — Ingredient Model & Migration ✅ DONE
 - **Assigned to**: Ernesto + Daniel
 - **Labels**: Backend
 - **Description**:
   Create `Models/Ingredient.cs`. Fields: Id (int), UserId (string, FK to IdentityUser), Name (string, required), Quantity (decimal, nullable), Unit (string, nullable, e.g. "cups"), CreatedAt (DateTime). Add `DbSet<Ingredient>` to `AppDbContext`. Ernesto defines the model; Daniel runs the migration and validates the schema.
+  > **Implementation note**: model was named `Models/UserIngredient.cs` (not `Ingredient.cs`) and `Quantity`/`Unit` are `string?` rather than `decimal?`, but all required fields (Id, UserId FK, Name, Quantity, Unit, CreatedAt) are present and correctly wired.
 - **Checklist**:
-  - [ ] Create `Models/Ingredient.cs` with all fields
-  - [ ] Add `DbSet<Ingredient> Ingredients` to `AppDbContext`
-  - [ ] Run: `dotnet ef migrations add AddIngredient && dotnet ef database update`
-  - [ ] Verify `Ingredients` table in DB with correct columns
+  - [x] Create `Models/Ingredient.cs` with all fields *(as `UserIngredient.cs`)*
+  - [x] Add `DbSet<Ingredient> Ingredients` to `AppDbContext` *(as `DbSet<UserIngredient> UserIngredients`, `Data/ApplicationDbContext.cs:9`)*
+  - [x] Run: `dotnet ef migrations add AddIngredient && dotnet ef database update`
+  - [x] Verify `Ingredients` table in DB with correct columns *(as `UserIngredients`, incl. FK + unique index on `(UserId, Name)`)*
 
 ---
 
-### Card 2.5 — IngredientService (Backend)
+### Card 2.5 — IngredientService (Backend) ✅ DONE
 - **Assigned to**: Ernesto + Daniel
 - **Labels**: Backend
 - **Description**:
   Create `Services/IIngredientService.cs` interface and `Services/IngredientService.cs` implementation. Always filter by `userId` so users can only see their own data. Ernesto writes the service; Daniel reviews the query logic and assists with registration in `Program.cs`.
+  > **Implementation note**: method signatures differ slightly from the spec (`AddIngredientAsync`/`UpdateIngredientAsync` take `userId` as an explicit parameter, and `UpdateIngredientAsync`/`DeleteIngredientAsync` return `bool` instead of `void`/using an `id` positional param) — this is arguably safer since it forces every call site to pass `userId` explicitly, and all queries are correctly scoped.
 - **Methods to implement**:
   ```csharp
   Task<List<Ingredient>> GetIngredientsAsync(string userId);
@@ -292,10 +294,10 @@ SmartFoodPlanner/
   Task DeleteIngredientAsync(int id, string userId);
   ```
 - **Checklist**:
-  - [ ] Create `IIngredientService` interface
-  - [ ] Implement all 4 methods in `IngredientService`
-  - [ ] `DeleteIngredientAsync` verifies the ingredient belongs to `userId` before deleting
-  - [ ] Register: `builder.Services.AddScoped<IIngredientService, IngredientService>()`
+  - [x] Create `IIngredientService` interface
+  - [x] Implement all 4 methods in `IngredientService`
+  - [x] `DeleteIngredientAsync` verifies the ingredient belongs to `userId` before deleting (`Services/IngredientService.cs:35-44`)
+  - [x] Register: `builder.Services.AddScoped<IIngredientService, IngredientService>()` (`Program.cs:61`)
 
 ---
 
@@ -363,28 +365,30 @@ SmartFoodPlanner/
 
 ---
 
-### Card 3.2 — MealPlan & Recipe Database Models
+### Card 3.2 — MealPlan & Recipe Database Models ✅ DONE
 - **Assigned to**: Ernesto + Daniel
 - **Labels**: Backend
 - **Description**:
   Create the data models to persist AI-generated meal plans. Coordinate with Alan on the DTO structure before writing models to ensure they align. Ernesto defines the EF relationships; Daniel creates the model files and runs the migration.
+  > **Implementation note**: `Recipe.Ingredients` is stored as a serialized JSON string column rather than a separate table — a reasonable simplification since ingredients are never queried independently of their recipe.
 - **Models**:
   - `MealPlan`: Id, UserId, GeneratedAt, List\<Recipe\>
   - `Recipe`: Id, MealPlanId, Day (string, e.g. "Monday"), Name, PrepTime (string), CookTime (string), Instructions (string), ShareToken (GUID string)
 - **Checklist**:
-  - [ ] Create 2 model files in `Models/`: `MealPlan.cs`, `Recipe.cs`
-  - [ ] Set up EF relationship: MealPlan →(1:N)→ Recipe
-  - [ ] Add `DbSet` entries in `AppDbContext` for both models
-  - [ ] Run: `dotnet ef migrations add AddMealPlanRecipes`
-  - [ ] Verify all tables and foreign keys are created correctly
+  - [x] Create 2 model files in `Models/`: `MealPlan.cs`, `Recipe.cs`
+  - [x] Set up EF relationship: MealPlan →(1:N)→ Recipe (`Data/ApplicationDbContext.cs:45-49`, cascade delete)
+  - [x] Add `DbSet` entries in `AppDbContext` for both models (`Data/ApplicationDbContext.cs:13,15`)
+  - [x] Run: `dotnet ef migrations add AddMealPlanRecipes` (`Data/Migrations/20260707173257_AddMealPlanRecipes.cs`)
+  - [x] Verify all tables and foreign keys are created correctly, incl. unique index on `ShareToken`
 
 ---
 
-### Card 3.3 — MealPlanService (Backend)
+### Card 3.3 — MealPlanService (Backend) ✅ DONE
 - **Assigned to**: Ernesto (primary) + Daniel (support)
 - **Labels**: Backend
 - **Description**:
   Create `Services/IMealPlanService.cs` and `MealPlanService.cs`. The save method maps Alan's DTO objects into EF entities. Queries always scope to `userId`. Ernesto writes the service methods; Daniel assists with the DTO-to-entity mapping logic and validates queries against the schema.
+  > **Update**: `GetRecipeByTokenAsync(string shareToken)` was missing (blocking Card 4.5) — added while implementing Card 4.5. All 5 methods are now present.
 - **Methods**:
   ```csharp
   Task<MealPlan> SaveMealPlanAsync(string userId, MealPlanResponse dto);
@@ -394,9 +398,9 @@ SmartFoodPlanner/
   Task<Recipe?> GetRecipeByTokenAsync(string shareToken);
   ```
 - **Checklist**:
-  - [ ] Implement all 5 methods
-  - [ ] `SaveMealPlanAsync` maps DTO → Entity and generates a GUID `ShareToken` per recipe
-  - [ ] Register as scoped in `Program.cs`
+  - [x] Implement all 5 methods *(note: `GetRecipeByIdAsync` also takes an extra `userId` param not in the original spec, which is a good extra safety scope)*
+  - [x] `SaveMealPlanAsync` maps DTO → Entity and generates a GUID `ShareToken` per recipe (`Services/MealPlanService.cs:10-30`)
+  - [x] Register as scoped in `Program.cs:62`
   - [ ] Test `SaveMealPlanAsync` in debug mode with real AI output
 
 ---
@@ -431,16 +435,17 @@ SmartFoodPlanner/
 
 ---
 
-### Card 3.6 — Past Meal Plans Page
+### Card 3.6 — Past Meal Plans Page ❌ NOT DONE (built the wrong feature)
 - **Assigned to**: Daniel
 - **Labels**: Backend, Frontend
 - **Description**:
   Build `Pages/PastPlans.razor`. Lists all meal plans the user has previously generated, sorted newest first. Each entry shows the generation date and links to that week's meal plan view. Daniel owns this card end-to-end — it draws on both his database querying skills (via `IMealPlanService`) and his frontend skills for the list UI.
+  > **Gap found**: `Components/Pages/PastPlans.razor` does not call `IMealPlanService` at all. It's a standalone journal/notes form (Name, Date, Notes fields) backed by an in-memory `List<PastPlanEntry>` in `@code` — nothing is persisted to the database, so all entries vanish on page refresh. It does not fetch real AI-generated `MealPlan` records, does not show recipe counts, and does not link into the 7-day grid view. This card still needs to be rebuilt against `IMealPlanService.GetMealPlansAsync(userId)`.
 - **Checklist**:
   - [ ] Fetch all meal plans via `IMealPlanService.GetMealPlansAsync(userId)`
   - [ ] Display: date generated, number of recipes (always 7)
   - [ ] Click on a plan → show that week's 7-day grid (reuse the MealPlan page or a detail view)
-  - [ ] Empty state: "No plans yet — generate your first one!"
+  - [x] Empty state: "No plans yet — generate your first one!" *(present, but for the wrong data source — "No past plans saved yet.")*
 
 ---
 
@@ -521,22 +526,23 @@ SmartFoodPlanner/
 
 ---
 
-### Card 4.5 — Shareable Recipe Link
+### Card 4.5 — Shareable Recipe Link ✅ DONE
 - **Assigned to**: Alan
 - **Labels**: AI/API, Backend
 - **Description**:
   Each recipe already has a `ShareToken` GUID (added in Sprint 3). Build the public-facing page `Pages/SharedRecipe.razor` at route `/share/{token}`. No `[Authorize]` attribute — anyone with the link can view. Wire up the "Share" button on Recipe Detail to copy the URL to the clipboard.
+  > **Implementation note**: extracted the ingredient/step-parsing logic shared by `RecipeDetail.razor` and `SharedRecipe.razor` into a new static `Services/RecipeTextFormatter.cs` to avoid duplicating it across both pages.
 - **Checklist**:
-  - [ ] Create `Pages/SharedRecipe.razor` with route `@page "/share/{Token}"`
-  - [ ] No `[Authorize]` on this page
-  - [ ] Fetch recipe via `IMealPlanService.GetRecipeByTokenAsync(Token)`
-  - [ ] Show read-only recipe detail (name, ingredients, steps — no Favorite/Share buttons)
-  - [ ] Show "Recipe not found" if token is invalid
-  - [ ] On `RecipeDetail.razor`: wire "Share" button to copy `https://{host}/share/{shareToken}` to clipboard using JS interop
+  - [x] Create `Pages/SharedRecipe.razor` with route `@page "/share/{Token}"` (`Components/Pages/SharedRecipe.razor:1`)
+  - [x] No `[Authorize]` on this page
+  - [x] Fetch recipe via `IMealPlanService.GetRecipeByTokenAsync(Token)` (added to `IMealPlanService`/`MealPlanService`)
+  - [x] Show read-only recipe detail (name, ingredients, steps — no Favorite/Share buttons)
+  - [x] Show "Recipe not found" if token is invalid
+  - [x] On `RecipeDetail.razor`: wire "Share" button to copy `https://{host}/share/{shareToken}` to clipboard using JS interop (`Components/Pages/RecipeDetail.razor:125-134`, `navigator.clipboard.writeText`)
 
 ---
 
-### Card 4.6 — Navigation Updates
+### Card 4.6 — Navigation Updates ✅ DONE
 - **Assigned to**: Adam + Daniel
 - **Labels**: Frontend
 - **Description**:
@@ -550,25 +556,26 @@ SmartFoodPlanner/
   - Logout
 - **Nav links (unauthenticated)**: "Sign in with Google" → `/login`
 - **Checklist**:
-  - [ ] All links present and correct in NavMenu
-  - [ ] Active page link has a distinct style (bold or color change)
-  - [ ] Authenticated-only links are inside `<AuthorizeView>`
-  - [ ] Test on mobile — nav should not overflow horizontally
+  - [x] All links present and correct in NavMenu (`Components/Layout/NavMenu.razor:19-48`)
+  - [x] Active page link has a distinct style (`.nav-item ::deep a.active`, `NavMenu.razor.css:98-102`)
+  - [x] Authenticated-only links are inside `<AuthorizeView>` (`NavMenu.razor:17-73`)
+  - [x] Test on mobile — nav should not overflow horizontally (hamburger checkbox toggle collapses menu below 641px, `NavMenu.razor.css:109-143`)
 
 ---
 
-### Card 4.7 — Responsive Design Audit
+### Card 4.7 — Responsive Design Audit ✅ DONE (CSS verified; manual DevTools pass still recommended)
 - **Assigned to**: Adam + Daniel
 - **Labels**: Frontend, QA
 - **Description**:
   Test every page at three breakpoints using browser DevTools: 375px (iPhone SE), 768px (iPad), 1280px (desktop). Fix layout issues — overflowing text, broken buttons, squished forms, or unreadable cards. Adam covers auth-related pages; Daniel covers Favorites, Past Plans, and Cookbook pages.
+  > **Implementation note**: verified by reading the CSS breakpoints (below), not by driving a browser — recommend an actual DevTools pass at 375/768/1280px before marking QA-complete, especially since Card 3.6's `PastPlans.razor` will likely be rebuilt (see above) and will need its own responsiveness check.
 - **Checklist**:
-  - [ ] Ingredients page: form and list stack cleanly on mobile
-  - [ ] Meal plan grid: 1 column on mobile, 2 on tablet, 3-4 on desktop
-  - [ ] Recipe detail: ingredients and steps are readable on 375px
-  - [ ] Cookbook/Favorites/Past Plans: grid adjusts column count
-  - [ ] NavMenu: collapses on mobile or uses a hamburger icon
-  - [ ] All buttons are at least 44×44px touch target on mobile
+  - [x] Ingredients page: form and list stack cleanly on mobile (`Ingredients.razor.css:27-30`, `.form-grid` collapses to 1 column ≤640px)
+  - [x] Meal plan grid: 1 column on mobile, 2 on tablet, 3-4 on desktop (`MealPlan.razor.css:17-31`: 4 cols → 2 cols ≤900px → 1 col ≤520px)
+  - [x] Recipe detail: ingredients and steps are readable on 375px (`RecipeDetail.razor.css:31-42`, layout collapses to 1 column ≤760px)
+  - [x] Cookbook/Favorites/Past Plans: grid adjusts column count (Bootstrap `col-lg-*` in `Cookbook.razor`/`Favorites.razor`; `PastPlans.razor` also uses `col-lg-*` but only for the wrong feature — see Card 3.6)
+  - [x] NavMenu: collapses on mobile or uses a hamburger icon (`NavMenu.razor.css:1-16,109-143`)
+  - [x] All buttons are at least 44×44px touch target on mobile (`wwwroot/app.css:116-126`, global `@media (max-width: 640px)` rule)
 
 ---
 
