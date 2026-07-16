@@ -231,6 +231,32 @@ namespace SmartFoodPlanner.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("SmartFoodPlanner.Models.Favorite", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("RecipeId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecipeId");
+
+                    b.HasIndex("UserId", "RecipeId")
+                        .IsUnique();
+
+                    b.ToTable("Favorites");
+                });
+
             modelBuilder.Entity("SmartFoodPlanner.Models.FavoriteRecipe", b =>
                 {
                     b.Property<int>("Id")
@@ -469,6 +495,17 @@ namespace SmartFoodPlanner.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("SmartFoodPlanner.Models.Favorite", b =>
+                {
+                    b.HasOne("SmartFoodPlanner.Models.Recipe", "Recipe")
+                        .WithMany("Favorites")
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Recipe");
+                });
+
             modelBuilder.Entity("SmartFoodPlanner.Models.FavoriteRecipe", b =>
                 {
                     b.HasOne("SmartFoodPlanner.Data.ApplicationUser", "User")
@@ -516,6 +553,11 @@ namespace SmartFoodPlanner.Migrations
             modelBuilder.Entity("SmartFoodPlanner.Models.MealPlan", b =>
                 {
                     b.Navigation("Recipes");
+                });
+
+            modelBuilder.Entity("SmartFoodPlanner.Models.Recipe", b =>
+                {
+                    b.Navigation("Favorites");
                 });
 #pragma warning restore 612, 618
         }

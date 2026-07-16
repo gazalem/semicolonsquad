@@ -14,6 +14,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
     public DbSet<Recipe> Recipes => Set<Recipe>();
 
+    public DbSet<Favorite> Favorites => Set<Favorite>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -51,5 +53,19 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         builder.Entity<Recipe>()
             .HasIndex(recipe => recipe.ShareToken)
             .IsUnique();
+
+        builder.Entity<Favorite>()
+            .HasIndex(f => new { f.UserId, f.RecipeId })
+            .IsUnique();
+
+        builder.Entity<Favorite>()
+            .HasOne(f => f.Recipe)
+            .WithMany(r => r.Favorites)
+            .HasForeignKey(f => f.RecipeId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<Favorite>()
+            .Property(f => f.UserId)
+            .IsRequired();      
     }
 }

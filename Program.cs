@@ -60,6 +60,7 @@ builder.Services.AddHttpClient();
 builder.Services.AddScoped<IAIService, OllamaAIService>();
 builder.Services.AddScoped<IIngredientService, IngredientService>();
 builder.Services.AddScoped<IMealPlanService, MealPlanService>();
+builder.Services.AddScoped<IFavoriteService, FavoriteService>();
 
 var app = builder.Build();
 

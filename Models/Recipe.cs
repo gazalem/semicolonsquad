@@ -25,4 +25,5 @@ public class Recipe
 
     [Required, StringLength(36)]
     public string ShareToken { get; set; } = Guid.NewGuid().ToString();
+    public List<Favorite> Favorites { get; set; } = new();
 }
