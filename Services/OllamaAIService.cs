@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -49,8 +50,9 @@ namespace SmartFoodPlanner.Services {
     }
 
     public async Task<MealPlanResponse> GenerateMealPlanAsync(IReadOnlyList<string> ingredients) {
-      var baseUrl = _configuration["OllamaSettings:BaseUrl"] ?? "http://localhost:11434";
-      var model = _configuration["OllamaSettings:Model"] ?? "gemma3:4b";
+      var baseUrl = _configuration["OllamaSettings:BaseUrl"] ?? "https://ollama.com/";
+      var model = _configuration["OllamaSettings:Model"] ?? "gemma4:cloud";
+      var apiKey = _configuration["OllamaSettings:ApiKey"] ?? _configuration["OLLAMA_API_KEY"];
       var ingredientList = string.Join(", ", ingredients);
 
       var request = new GenerateRequest {
@@ -62,10 +64,16 @@ namespace SmartFoodPlanner.Services {
         Format = _formatSchema,
       };
 
-      _logger.LogInformation("Calling Ollama at {BaseUrl} with model {Model}", baseUrl, model);
+      _logger.LogInformation(
+          "Calling Ollama at {BaseUrl} with model {Model} (API key present: {HasApiKey})",
+          baseUrl, model, !string.IsNullOrWhiteSpace(apiKey));
 
       var client = _httpClientFactory.CreateClient();
       client.Timeout = _requestTimeout;
+
+      if (!string.IsNullOrWhiteSpace(apiKey)) {
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+      }
 
       try {
         var httpResponse = await client.PostAsJsonAsync($"{baseUrl}/api/generate", request);
