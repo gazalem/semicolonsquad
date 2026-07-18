@@ -7,6 +7,7 @@ using SmartFoodPlanner.Components;
 using SmartFoodPlanner.Components.Account;
 using SmartFoodPlanner.Data;
 using SmartFoodPlanner.Services;
+using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,16 +36,33 @@ var googleClientSecret = builder.Configuration["Authentication:Google:ClientSecr
 if (!string.IsNullOrWhiteSpace(googleClientId) && !string.IsNullOrWhiteSpace(googleClientSecret))
 {
     authenticationBuilder.AddGoogle(options =>
-    {
-        options.ClientId = googleClientId;
-        options.ClientSecret = googleClientSecret;
-    });
+{
+    options.ClientId = googleClientId;
+    options.ClientSecret = googleClientSecret;
+
+    options.CorrelationCookie.SameSite = SameSiteMode.None;
+    options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.CorrelationCookie.HttpOnly = true;
+});
+
+
 }
 
 authenticationBuilder.AddIdentityCookies();
+
+builder.Services.ConfigureExternalCookie(options =>
+{
+    options.Cookie.SameSite = SameSiteMode.None;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.HttpOnly = true;
+});
+
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.LoginPath = "/login";
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.HttpOnly = true;
 });
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
@@ -68,6 +86,14 @@ builder.Services.AddScoped<IAIService, OllamaAIService>();
 builder.Services.AddScoped<IIngredientService, IngredientService>();
 builder.Services.AddScoped<IMealPlanService, MealPlanService>();
 
+var dataProtectionPath =
+    Path.Combine(builder.Environment.ContentRootPath, "DataProtection-Keys");
+
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionPath))
+    .SetApplicationName("SmartFoodPlanner");
+
+    
 var app = builder.Build();
 
 var forwardedHeadersOptions = new ForwardedHeadersOptions
@@ -75,7 +101,7 @@ var forwardedHeadersOptions = new ForwardedHeadersOptions
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
 };
 
-forwardedHeadersOptions.KnownNetworks.Clear();
+forwardedHeadersOptions.KnownIPNetworks.Clear();
 forwardedHeadersOptions.KnownProxies.Clear();
 
 app.UseForwardedHeaders(forwardedHeadersOptions);

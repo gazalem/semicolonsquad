@@ -10,7 +10,7 @@ RUN dotnet publish SmartFoodPlanner.csproj -c Release -o /app/publish --no-resto
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 COPY --from=build /app/publish .
-RUN mkdir -p /app/Data
+RUN mkdir -p /app/Data /app/DataProtection-Keys
 
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENTRYPOINT ["dotnet", "SmartFoodPlanner.dll"]
