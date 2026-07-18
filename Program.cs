@@ -8,6 +8,7 @@ using SmartFoodPlanner.Components.Account;
 using SmartFoodPlanner.Data;
 using SmartFoodPlanner.Services;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -125,9 +126,15 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+if (!app.Environment.IsDevelopment())
 {
-    app.UseMigrationsEndPoint();
+    app.UseExceptionHandler(new ExceptionHandlerOptions
+    {
+        ExceptionHandlingPath = "/Error",
+        SuppressDiagnosticsCallback = context => false
+    });
+
+    app.UseHsts();
 }
 else
 {
