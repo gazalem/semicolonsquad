@@ -110,6 +110,18 @@ forwardedHeadersOptions.KnownProxies.Clear();
 
 app.UseForwardedHeaders(forwardedHeadersOptions);
 
+// Explicitly ordered so Authentication/Authorization run AFTER ForwardedHeaders has
+// corrected Request.Scheme. Without these explicit calls, ASP.NET Core auto-inserts
+// UseRouting/UseAuthentication/UseAuthorization at the very front of the pipeline
+// (before any custom middleware, regardless of code order), which meant the Google
+// OAuth callback (/signin-google) built its redirect_uri from the raw "http" scheme
+// while the initial challenge redirect (via the Razor Components endpoint) correctly
+// saw "https" — causing Google's token endpoint to reject the code exchange with
+// redirect_uri_mismatch.
+app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.Use(async (context, next) =>
 {
     try
