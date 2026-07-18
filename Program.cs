@@ -7,8 +7,13 @@ using SmartFoodPlanner.Components;
 using SmartFoodPlanner.Components.Account;
 using SmartFoodPlanner.Data;
 using SmartFoodPlanner.Services;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.SetMinimumLevel(LogLevel.Information);
 
 var herokuPort = Environment.GetEnvironmentVariable("PORT");
 if (!string.IsNullOrEmpty(herokuPort))
@@ -35,16 +40,33 @@ var googleClientSecret = builder.Configuration["Authentication:Google:ClientSecr
 if (!string.IsNullOrWhiteSpace(googleClientId) && !string.IsNullOrWhiteSpace(googleClientSecret))
 {
     authenticationBuilder.AddGoogle(options =>
-    {
-        options.ClientId = googleClientId;
-        options.ClientSecret = googleClientSecret;
-    });
+{
+    options.ClientId = googleClientId;
+    options.ClientSecret = googleClientSecret;
+
+    options.CorrelationCookie.SameSite = SameSiteMode.None;
+    options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.CorrelationCookie.HttpOnly = true;
+});
+
+
 }
 
 authenticationBuilder.AddIdentityCookies();
+
+builder.Services.ConfigureExternalCookie(options =>
+{
+    options.Cookie.SameSite = SameSiteMode.None;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.HttpOnly = true;
+});
+
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.LoginPath = "/login";
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.HttpOnly = true;
 });
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
@@ -54,7 +76,7 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
     {
-        options.SignIn.RequireConfirmedAccount = true;
+        options.SignIn.RequireConfirmedAccount = false;
         options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
     })
     .AddEntityFrameworkStores<ApplicationDbContext>()
@@ -68,18 +90,44 @@ builder.Services.AddScoped<IAIService, OllamaAIService>();
 builder.Services.AddScoped<IIngredientService, IngredientService>();
 builder.Services.AddScoped<IMealPlanService, MealPlanService>();
 
+var dataProtectionPath =
+    Path.Combine(builder.Environment.ContentRootPath, "DataProtection-Keys");
+
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionPath))
+    .SetApplicationName("SmartFoodPlanner");
+
+    
 var app = builder.Build();
 
 var forwardedHeadersOptions = new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
 };
-// Heroku's router IP isn't known in advance, so the default loopback-only trust
-// list would intermittently drop X-Forwarded-Proto and cause the scheme (and thus
-// the OAuth redirect_uri) to be computed inconsistently between requests.
+
 forwardedHeadersOptions.KnownIPNetworks.Clear();
 forwardedHeadersOptions.KnownProxies.Clear();
+
 app.UseForwardedHeaders(forwardedHeadersOptions);
+
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine("===== UNHANDLED REQUEST EXCEPTION =====");
+        Console.Error.WriteLine($"Method: {context.Request.Method}");
+        Console.Error.WriteLine($"Path: {context.Request.Path}");
+        Console.Error.WriteLine($"Query: {context.Request.QueryString}");
+        Console.Error.WriteLine(ex.ToString());
+        Console.Error.WriteLine("======================================");
+
+        throw;
+    }
+});
 
 using (var scope = app.Services.CreateScope())
 {
@@ -102,16 +150,21 @@ using (var scope = app.Services.CreateScope())
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseMigrationsEndPoint();
+    app.UseDeveloperExceptionPage();
 }
 else
 {
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+    app.UseExceptionHandler(new ExceptionHandlerOptions
+    {
+        ExceptionHandlingPath = "/Error",
+        CreateScopeForErrors = true,
+        SuppressDiagnosticsCallback = _ => false
+    });
+
     app.UseHsts();
 }
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-app.UseHttpsRedirection();
+
 
 app.UseAntiforgery();
 
