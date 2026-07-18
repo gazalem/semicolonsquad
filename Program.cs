@@ -11,6 +11,9 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.SetMinimumLevel(LogLevel.Information);
 
 var herokuPort = Environment.GetEnvironmentVariable("PORT");
 if (!string.IsNullOrEmpty(herokuPort))
@@ -73,7 +76,7 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
     {
-        options.SignIn.RequireConfirmedAccount = true;
+        options.SignIn.RequireConfirmedAccount = false;
         options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
     })
     .AddEntityFrameworkStores<ApplicationDbContext>()
@@ -107,6 +110,25 @@ forwardedHeadersOptions.KnownProxies.Clear();
 
 app.UseForwardedHeaders(forwardedHeadersOptions);
 
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine("===== UNHANDLED REQUEST EXCEPTION =====");
+        Console.Error.WriteLine($"Method: {context.Request.Method}");
+        Console.Error.WriteLine($"Path: {context.Request.Path}");
+        Console.Error.WriteLine($"Query: {context.Request.QueryString}");
+        Console.Error.WriteLine(ex.ToString());
+        Console.Error.WriteLine("======================================");
+
+        throw;
+    }
+});
+
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -126,24 +148,23 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+}
+else
 {
     app.UseExceptionHandler(new ExceptionHandlerOptions
     {
         ExceptionHandlingPath = "/Error",
-        SuppressDiagnosticsCallback = context => false
+        CreateScopeForErrors = true,
+        SuppressDiagnosticsCallback = _ => false
     });
 
     app.UseHsts();
 }
-else
-{
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
-}
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-app.UseHttpsRedirection();
+
 
 app.UseAntiforgery();
 
