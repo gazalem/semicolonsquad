@@ -70,10 +70,16 @@ builder.Services.AddScoped<IMealPlanService, MealPlanService>();
 
 var app = builder.Build();
 
-app.UseForwardedHeaders(new ForwardedHeadersOptions
+var forwardedHeadersOptions = new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
-});
+};
+// Heroku's router IP isn't known in advance, so the default loopback-only trust
+// list would intermittently drop X-Forwarded-Proto and cause the scheme (and thus
+// the OAuth redirect_uri) to be computed inconsistently between requests.
+forwardedHeadersOptions.KnownIPNetworks.Clear();
+forwardedHeadersOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedHeadersOptions);
 
 using (var scope = app.Services.CreateScope())
 {
