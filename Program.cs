@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -8,6 +9,12 @@ using SmartFoodPlanner.Data;
 using SmartFoodPlanner.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var herokuPort = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrEmpty(herokuPort))
+{
+    builder.WebHost.UseUrls($"http://0.0.0.0:{herokuPort}");
+}
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -62,6 +69,11 @@ builder.Services.AddScoped<IIngredientService, IngredientService>();
 builder.Services.AddScoped<IMealPlanService, MealPlanService>();
 
 var app = builder.Build();
+
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
 
 using (var scope = app.Services.CreateScope())
 {
