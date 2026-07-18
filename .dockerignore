@@ -1,0 +1,8 @@
+bin/
+obj/
+Data/app.db
+appsettings.Development.json
+.git/
+.vs/
+.vscode/
+*.md
